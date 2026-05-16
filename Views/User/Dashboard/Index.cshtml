@@ -1,0 +1,258 @@
+@model DashboardViewModel
+
+@{
+    ViewData["Title"] = "Cebu Social Feed";
+}
+
+<section class="feed-page" data-dashboard data-feed-page>
+    <header class="feed-topbar lp-reveal">
+        <div>
+            <p class="lp-kicker">SugboGo Social</p>
+            <h1>@Model.Greeting</h1>
+            <p>Share Cebu destination stories, discover routes from other travelers, and get AI-ranked ideas from your interactions.</p>
+        </div>
+        <div class="feed-topbar__actions">
+            <a class="feed-icon-btn" href="#feedComposer" aria-label="Create a post">+</a>
+            <a class="feed-profile-chip" href="/Dashboard/Profile" title="View profile">@Model.UserInitial</a>
+        </div>
+    </header>
+
+    <div class="feed-shell">
+        <aside class="feed-sidebar feed-sidebar--left lp-reveal" aria-label="Profile and interests">
+            <article class="feed-profile-card" id="profile">
+                <div class="feed-avatar feed-avatar--large">@Model.UserInitial</div>
+                <h2>@Model.FirstName</h2>
+                <div class="feed-profile-details">
+                    <p><strong>Stay:</strong> @Model.TravelProfile.StayPreference</p>
+                    <p><strong>Pace:</strong> @Model.TravelProfile.PacePreference</p>
+                    <p><strong>Interests:</strong> @Model.TravelProfile.FoodPreference</p>
+                </div>
+                <div class="feed-profile-stats">
+                    <span><strong>@Model.SocialFeed.Count</strong> posts</span>
+                    <span><strong>@Model.SavedGems.Count</strong> saved</span>
+                </div>
+                <a href="/Dashboard/Profile" class="sg-btn sg-btn--outline sg-btn--sm" style="margin-top: 1rem; width: 100%; text-decoration: none; display: block; text-align: center;">View Profile</a>
+            </article>
+
+            <article class="feed-panel">
+                <h2>Your interests</h2>
+                <div class="feed-interest-list">
+                    @foreach (var tag in Model.VibeTags)
+                    {
+                        <button class="@(tag.IsActive ? "is-active" : "")" type="button" data-vibe-tag>@tag.Label</button>
+                    }
+                </div>
+            </article>
+
+            <article class="feed-panel">
+                <h2>Your bookings</h2>
+                @if (Model.Bookings.Any())
+                {
+                    <ul class="feed-saved-list">
+                        @foreach (var booking in Model.Bookings)
+                        {
+                            <li>
+                                <div>
+                                    <strong>@booking.Title</strong>
+                                    <span>@booking.Type · @booking.Date · @booking.Status</span>
+                                </div>
+                            </li>
+                        }
+                    </ul>
+                }
+                else
+                {
+                    <p>Confirmed trips will appear here after checkout.</p>
+                }
+            </article>
+
+            <article class="feed-panel">
+                <h2>Platform support</h2>
+                <ul class="feed-capability-list">
+                    <li><span></span> Authenticated client profile</li>
+                    <li><span></span> Cloud-ready post and image fields</li>
+                    <li><span></span> Live engagement counters</li>
+                    <li><span></span> AI recommendation signals</li>
+                </ul>
+            </article>
+        </aside>
+
+        <main class="feed-main" aria-label="Cebu destination feed">
+            @if (TempData["DashboardMessage"] is string message)
+            {
+                <div class="feed-panel feed-notice">@message</div>
+            }
+            @if (TempData["DashboardError"] is string error)
+            {
+                <div class="feed-panel feed-notice feed-notice--error">@error</div>
+            }
+
+            <section class="feed-composer lp-reveal" id="feedComposer" aria-label="Create a destination post">
+                <div class="feed-composer__head">
+                    <div class="feed-avatar">@Model.UserInitial</div>
+                    <button type="button" data-focus-composer>Share a Cebu destination...</button>
+                </div>
+
+                <form class="feed-form" asp-controller="Dashboard" asp-action="CreatePost" method="post" enctype="multipart/form-data" data-feed-form data-server-form>
+                    @Html.AntiForgeryToken()
+                    <div class="feed-form__grid">
+                        <label>
+                            <span>Destination name</span>
+                            <input name="destination" type="text" placeholder="e.g. Bantayan Island" required />
+                        </label>
+                        <label>
+                            <span>Location in Cebu</span>
+                            <input name="location" type="text" placeholder="Santa Fe, Bantayan" required />
+                        </label>
+                    </div>
+                    <label>
+                        <span>Travel experience</span>
+                        <textarea name="description" rows="3" placeholder="What made this place worth visiting?" required></textarea>
+                    </label>
+                    <label>
+                        <span>Caption</span>
+                        <input name="caption" type="text" placeholder="A short social caption" />
+                    </label>
+                    <div class="feed-form__grid">
+                        <label>
+                            <span>Tags or categories</span>
+                            <select name="tag">
+                                <option value="beaches">Beach</option>
+                                <option value="hiking">Mountain</option>
+                                <option value="nightlife">Nightlife</option>
+                                <option value="food">Food Trip</option>
+                                <option value="adventure">Adventure</option>
+                                <option value="culture">Culture</option>
+                            </select>
+                        </label>
+                        <label class="feed-upload">
+                            <span>Upload photo</span>
+                            <input name="photo" type="file" accept="image/*" data-feed-photo />
+                        </label>
+                    </div>
+                    <img class="feed-preview" data-feed-preview alt="Selected destination preview" hidden />
+                    <div class="feed-form__actions">
+                        <small data-feed-sync>Cloud sync ready once storage credentials are connected.</small>
+                        <button type="submit">Post destination</button>
+                    </div>
+                </form>
+            </section>
+
+            <section class="feed-list lp-reveal" data-feed-list aria-label="Posts from Cebu travelers">
+                @if (!Model.SocialFeed.Any())
+                {
+                    <article class="feed-panel feed-empty-state">
+                        <h2>No destination posts yet</h2>
+                        <p>Create the first Cebu destination post. It will be saved to App_Data/destination-posts.json and appear here for every signed-in user.</p>
+                    </article>
+                }
+                @foreach (var post in Model.SocialFeed)
+                {
+                    <article class="feed-post" data-feed-post data-post-id="@post.Id">
+                        <header class="feed-post__header">
+                            <div class="feed-avatar">@post.AuthorInitial</div>
+                            <div>
+                                <strong>@post.AuthorName</strong>
+                                <span>@post.AuthorRole · @post.Timestamp</span>
+                            </div>
+                        </header>
+
+                        <div class="feed-post__body">
+                            <div class="feed-post__title-row">
+                                <div>
+                                    <h2>@post.DestinationName</h2>
+                                    <p>@post.Location</p>
+                                </div>
+                                <span>@post.MatchScore% AI match</span>
+                            </div>
+                            <p>@post.Description</p>
+                            <p class="feed-caption">@post.Caption</p>
+                            <div class="feed-tags">
+                                @foreach (var tag in post.Tags)
+                                {
+                                    <span>#@tag</span>
+                                }
+                            </div>
+                        </div>
+
+                        <img class="feed-post__image" src="@post.ImageUrl" alt="@post.DestinationName in @post.Location" />
+
+                        <div class="feed-ai-note">
+                            <strong>Recommended for you</strong>
+                            <span>@post.RecommendationReason</span>
+                        </div>
+
+                        <footer class="feed-engagement">
+                            <div class="feed-counts">
+                                <span><b data-like-count>@post.Likes</b> likes</span>
+                                <span><b data-comment-count>@post.Comments</b> comments</span>
+                            </div>
+                            <div class="feed-actions">
+                                <button class="@(post.IsLikedByUser ? "is-liked" : "")" type="button" data-like-button data-like-url="@Url.Action("LikePost", "Dashboard", new { postId = post.Id })">Like</button>
+                                <button type="button" data-comment-toggle>Comment</button>
+                                <button type="button" data-share-button>Share</button>
+                            </div>
+                            <form class="feed-comment-form" data-comment-form data-comment-url="@Url.Action("AddComment", "Dashboard", new { postId = post.Id })">
+                                <input type="text" name="text" placeholder="Write a comment..." aria-label="Write a comment" required />
+                                <button type="submit">Send</button>
+                            </form>
+                            <div class="feed-comments" data-comments>
+                                @foreach (var comment in post.CommentsList)
+                                {
+                                    <div class="feed-comment">
+                                        <strong>@comment.AuthorName</strong> @comment.Text
+                                        <small>@comment.Timestamp</small>
+                                    </div>
+                                }
+                            </div>
+                        </footer>
+                    </article>
+                }
+            </section>
+        </main>
+
+        <aside class="feed-sidebar feed-sidebar--right lp-reveal" aria-label="AI recommendations">
+            <article class="feed-panel feed-panel--accent">
+                <h2>AI destination picks</h2>
+                <p>Recommendations adjust as you like, comment, and post about Cebu categories.</p>
+            </article>
+
+            @foreach (var gem in Model.CuratedGems.Take(3))
+            {
+                <article class="feed-rec-card" data-surprise-gem data-title="@gem.Title" data-reason="@gem.MatchReason">
+                    <img src="@gem.ImageUrl" alt="@gem.Title in @gem.Neighborhood" />
+                    <div>
+                        <span>@gem.Category · @gem.MatchScore% match</span>
+                        <h3>@gem.Title</h3>
+                        <p>@gem.MatchReason</p>
+                        <small>@gem.Neighborhood</small>
+                        <button type="button" class="feed-save-btn" data-save-gem data-save-url="@Url.Action("SaveGem", "Dashboard", new { title = gem.Title, category = gem.Category, neighborhood = gem.Neighborhood })">Save Gem</button>
+                    </div>
+                </article>
+            }
+
+            <article class="feed-panel">
+                <h2>Saved Cebu gems</h2>
+                @if (Model.SavedGems.Any())
+                {
+                    <ul class="feed-saved-list" data-saved-list>
+                        @foreach (var gem in Model.SavedGems)
+                        {
+                            <li data-saved-gem-id="@gem.Id">
+                                <div>
+                                    <strong>@gem.Title</strong>
+                                    <span>@gem.Note</span>
+                                </div>
+                                <button type="button" data-remove-gem data-remove-url="@Url.Action("RemoveGem", "Dashboard", new { gemId = gem.Id })" aria-label="Remove gem">&times;</button>
+                            </li>
+                        }
+                    </ul>
+                }
+                else
+                {
+                    <p data-no-saved-gems>Saved gems will appear here once save actions are persisted.</p>
+                }
+            </article>
+        </aside>
+    </div>
+</section>

@@ -1,0 +1,32 @@
+[
+  {
+    "id": "4afe9d8901a846f58a5d26125b573ca6",
+    "userId": "3ccca9af1ac74ff292056945587563c7",
+    "user": null,
+    "email": "joemarietibur@gmail.com",
+    "placeInterests": [
+      "beaches",
+      "mountains",
+      "islands"
+    ],
+    "activityInterests": [
+      "dining",
+      "water-sports",
+      "slow-travel"
+    ],
+    "interests": [
+      "beaches",
+      "mountains",
+      "islands",
+      "dining",
+      "water-sports",
+      "slow-travel"
+    ],
+    "adventureLevel": 3,
+    "travelPace": "Balanced",
+    "budgetRange": "Mid-range",
+    "notes": null,
+    "createdAt": "2026-05-09T08:19:02.1648386+00:00",
+    "updatedAt": "2026-05-09T08:19:02.1699846+00:00"
+  }
+]

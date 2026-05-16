@@ -1,30 +1,122 @@
 using System.Security.Claims;
+using Microsoft.EntityFrameworkCore;
+using SugboGo.Data;
 using SugboGo.Models;
+using SugboGo.Services.Travel;
 
 namespace SugboGo.Services.Dashboard;
 
 public sealed class DashboardExperienceService : IDashboardExperienceService
 {
-    public DashboardViewModel BuildForUser(ClaimsPrincipal user)
+    private readonly IDestinationPostStore _postStore;
+    private readonly ITravelPreferenceStore _preferenceStore;
+    private readonly IUserSavedGemStore _savedGemStore;
+    private readonly SugboGoDbContext _dbContext;
+
+    public DashboardExperienceService(
+        IDestinationPostStore postStore,
+        ITravelPreferenceStore preferenceStore,
+        IUserSavedGemStore savedGemStore,
+        SugboGoDbContext dbContext)
+    {
+        _postStore = postStore;
+        _preferenceStore = preferenceStore;
+        _savedGemStore = savedGemStore;
+        _dbContext = dbContext;
+    }
+
+    public async Task<DashboardViewModel> BuildForUserAsync(ClaimsPrincipal user, CancellationToken cancellationToken = default)
     {
         var fullName = user.FindFirstValue(ClaimTypes.Name) ?? "Traveler";
         var email = user.FindFirstValue(ClaimTypes.Email) ?? string.Empty;
+        var userId = user.FindFirstValue(ClaimTypes.NameIdentifier) ?? string.Empty;
         var firstName = fullName.Split(' ', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? "Traveler";
         var seed = Math.Abs(email.GetHashCode());
-        var hasTrip = !email.Contains("notrip", StringComparison.OrdinalIgnoreCase);
+        var preferences = string.IsNullOrWhiteSpace(userId)
+            ? null
+            : await _preferenceStore.FindLatestByUserIdAsync(userId, cancellationToken);
+        var posts = await _postStore.GetAllAsync(cancellationToken);
+        var savedGems = string.IsNullOrWhiteSpace(userId)
+            ? []
+            : await _savedGemStore.GetByUserIdAsync(userId, cancellationToken);
+        var bookings = await GetBookingsForUserAsync(userId, cancellationToken);
 
         return new DashboardViewModel
         {
             FirstName = firstName,
+            UserInitial = firstName[..1].ToUpperInvariant(),
             Greeting = BuildGreeting(firstName),
-            ActiveTrip = hasTrip ? BuildActiveTrip(firstName, seed) : null,
-            VibeTags = BuildVibeTags(seed),
+            ActiveTrip = BuildActiveTrip(firstName, seed, bookings.FirstOrDefault()),
+            SocialFeed = BuildSocialFeed(posts, preferences),
+            VibeTags = BuildVibeTags(preferences),
             CuratedGems = BuildCuratedGems(seed),
-            Bookings = BuildBookings(hasTrip),
-            SavedGems = BuildSavedGems(seed),
+            Bookings = BuildBookings(bookings),
+            SavedGems = savedGems.Select(gem => new SavedGemViewModel
+            {
+                Id = gem.Id,
+                Title = gem.Title,
+                Note = gem.Note
+            }).ToList(),
             PastAdventures = BuildPastAdventures(seed),
-            TravelProfile = BuildTravelProfile(seed),
+            TravelProfile = BuildTravelProfile(preferences, seed),
             FeatureSuggestions = BuildFeatureSuggestions()
+        };
+    }
+
+    public async Task<UserProfilePageViewModel> BuildProfileForUserAsync(ClaimsPrincipal user, CancellationToken cancellationToken = default)
+    {
+        var fullName = user.FindFirstValue(ClaimTypes.Name) ?? "Traveler";
+        var email = user.FindFirstValue(ClaimTypes.Email) ?? string.Empty;
+        var userId = user.FindFirstValue(ClaimTypes.NameIdentifier) ?? string.Empty;
+        var firstName = fullName.Split(' ', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? "Traveler";
+
+        var preferences = string.IsNullOrWhiteSpace(userId)
+            ? null
+            : await _preferenceStore.FindLatestByUserIdAsync(userId, cancellationToken);
+        var bookings = await GetBookingsForUserAsync(userId, cancellationToken);
+        var savedGems = string.IsNullOrWhiteSpace(userId)
+            ? []
+            : await _savedGemStore.GetByUserIdAsync(userId, cancellationToken);
+        var recommendedSpots = await GetRecommendedTravelSpotsAsync(preferences, savedGems, cancellationToken);
+
+        var today = DateTime.Today;
+        var currentBooking = bookings
+            .Where(booking => booking.TravelDate.ToLocalTime().Date >= today &&
+                !booking.Status.Equals("Cancelled", StringComparison.OrdinalIgnoreCase))
+            .OrderBy(booking => booking.TravelDate)
+            .FirstOrDefault();
+
+        return new UserProfilePageViewModel
+        {
+            FullName = fullName,
+            Email = email,
+            FirstName = firstName,
+            UserInitial = firstName[..1].ToUpperInvariant(),
+            Preferences = preferences,
+            PlacePreferenceLabels = preferences?.PlaceInterests.Select(BuildInterestLabel).ToList() ?? [],
+            ActivityPreferenceLabels = preferences?.ActivityInterests.Select(BuildInterestLabel).ToList() ?? [],
+            CurrentBooking = currentBooking is null ? null : BuildProfileBooking(currentBooking),
+            PreviousBookings = bookings
+                .Where(booking =>
+                    (currentBooking is null || booking.Id != currentBooking.Id) &&
+                    (booking.TravelDate.ToLocalTime().Date < today ||
+                        booking.Status.Equals("Cancelled", StringComparison.OrdinalIgnoreCase)))
+                .OrderByDescending(booking => booking.TravelDate)
+                .Select(BuildProfileBooking)
+                .ToList(),
+            SavedDestinations = savedGems
+                .OrderByDescending(gem => gem.SavedAt)
+                .Select(gem => new SavedGemViewModel
+                {
+                    Id = gem.Id,
+                    Title = gem.Title,
+                    Note = string.IsNullOrWhiteSpace(gem.Note)
+                        ? $"{gem.Category} in {gem.Neighborhood}".Trim()
+                        : gem.Note
+                })
+                .ToList(),
+            Recommendations = recommendedSpots,
+            LinkedContentPlaceholders = BuildProfileLinkedContentPlaceholders()
         };
     }
 
@@ -35,9 +127,15 @@ public sealed class DashboardExperienceService : IDashboardExperienceService
         return $"{dayPart}, {firstName}";
     }
 
-    private static ActiveTripViewModel BuildActiveTrip(string firstName, int seed)
+    private static ActiveTripViewModel? BuildActiveTrip(string firstName, int seed, Booking? booking)
     {
+        if (booking is null)
+        {
+            return null;
+        }
+
         var startDate = DateTime.Today.AddDays(seed % 2 == 0 ? 3 : -1);
+        startDate = booking.TravelDate.ToLocalTime().Date;
         var status = DateTime.Today >= startDate
             ? "You are currently in Cebu!"
             : $"Your Cebu Adventure begins in {(startDate - DateTime.Today).Days} days!";
@@ -51,11 +149,11 @@ public sealed class DashboardExperienceService : IDashboardExperienceService
 
         return new ActiveTripViewModel
         {
-            Title = $"{firstName}'s Urban Explorer Route",
+            Title = $"{firstName}'s {booking.DestinationName} trip",
             Status = status,
-            DateRange = $"{startDate:MMM d} to {startDate.AddDays(2):MMM d, yyyy}",
-            Hotel = "The Helix House, Banawa ridge",
-            SogboKeyCode = $"SG-{DateTime.Today:MMdd}-{seed % 9000 + 1000}",
+            DateRange = $"{startDate:MMM d} to {startDate.AddDays(1):MMM d, yyyy}",
+            Hotel = ExtractSelectedName(booking.SelectedAccommodationJson, "Accommodation pending"),
+            SogboKeyCode = booking.QrCode,
             Stops = stops,
             MapPins =
             [
@@ -66,12 +164,58 @@ public sealed class DashboardExperienceService : IDashboardExperienceService
         };
     }
 
-    private static List<VibeTagViewModel> BuildVibeTags(int seed)
+    private static List<DestinationPostViewModel> BuildSocialFeed(IEnumerable<DestinationPost> posts, TravelPreferenceRecord? preferences)
     {
-        var activeIndex = seed % 4;
-        var tags = new[] { "Urban Explorer", "Island Minimalist", "Street Food Safe", "Design Stays", "Soft Adventure", "After-Dark Cebu" };
+        var selected = preferences?.Interests ?? [];
 
-        return tags.Select((tag, index) => new VibeTagViewModel { Label = tag, IsActive = index == activeIndex || index == 0 }).ToList();
+        return posts.Select(post =>
+        {
+            var tagKey = NormalizeInterest(post.Tag);
+            var isMatch = selected.Any(interest => NormalizeInterest(interest) == tagKey);
+
+            return new DestinationPostViewModel
+            {
+                Id = post.Id,
+                AuthorName = post.AuthorName,
+                AuthorInitial = BuildInitial(post.AuthorName),
+                AuthorRole = string.Equals(post.UserId, preferences?.UserId, StringComparison.OrdinalIgnoreCase) ? "SugboGo client" : "Cebu traveler",
+                Timestamp = post.CreatedAt.ToLocalTime().ToString("MMM d, h:mm tt"),
+                DestinationName = post.DestinationName,
+                Location = post.Location,
+                Description = post.Description,
+                Caption = post.Caption,
+                ImageUrl = BuildPostImageUrl(post.ImageFileName),
+                Tags = string.IsNullOrWhiteSpace(post.Tag) ? ["Cebu"] : [BuildInterestLabel(post.Tag)],
+                Likes = post.Likes,
+                Comments = post.Comments,
+                CommentsList = (post.CommentsList ?? []).Select(c => new PostCommentViewModel
+                {
+                    AuthorName = c.AuthorName,
+                    Text = c.Text,
+                    Timestamp = c.CreatedAt.ToLocalTime().ToString("MMM d, h:mm tt")
+                }).ToList(),
+                RecommendationReason = isMatch
+                    ? "This matches your saved Cebu travel interests."
+                    : "This post is part of the live Cebu community feed.",
+                MatchScore = isMatch ? 92 : 74
+            };
+        }).ToList();
+    }
+
+    private static List<VibeTagViewModel> BuildVibeTags(TravelPreferenceRecord? preferences)
+    {
+        if (preferences?.Interests.Count > 0)
+        {
+            return TravelInterestCatalog.Options
+                .Where(option => preferences.Interests.Contains(option.Key, StringComparer.OrdinalIgnoreCase))
+                .Select(option => new VibeTagViewModel { Label = option.Label, IsActive = true })
+                .ToList();
+        }
+
+        return TravelInterestCatalog.Options
+            .Take(6)
+            .Select(option => new VibeTagViewModel { Label = option.Label, IsActive = false })
+            .ToList();
     }
 
     private static List<GemRecommendationViewModel> BuildCuratedGems(int seed)
@@ -87,28 +231,163 @@ public sealed class DashboardExperienceService : IDashboardExperienceService
         return gems.OrderBy(gem => (gem.MatchScore + seed) % 17).ToList();
     }
 
-    private static List<BookingVaultItemViewModel> BuildBookings(bool hasTrip)
+    private static List<BookingVaultItemViewModel> BuildBookings(IEnumerable<Booking> bookings)
     {
-        var bookings = new List<BookingVaultItemViewModel>();
-
-        if (hasTrip)
+        return bookings.Select(booking => new BookingVaultItemViewModel
         {
-            bookings.Add(new() { Type = "Hotel", Title = "The Helix House", Date = DateTime.Today.AddDays(3).ToString("MMM d"), Status = "Confirmed" });
-            bookings.Add(new() { Type = "Activity", Title = "Private Mountain View", Date = DateTime.Today.AddDays(4).ToString("MMM d"), Status = "Guide assigned" });
-            bookings.Add(new() { Type = "Transport", Title = "Airport to Banawa", Date = DateTime.Today.AddDays(3).ToString("MMM d"), Status = "Driver pending" });
-        }
-
-        return bookings;
+            Type = booking.TravelerType,
+            Title = booking.DestinationName,
+            Date = booking.TravelDate.ToLocalTime().ToString("MMM d, yyyy"),
+            Status = $"{booking.Status} · {booking.QrCode}"
+        }).ToList();
     }
 
-    private static List<SavedGemViewModel> BuildSavedGems(int seed)
+    private async Task<List<Booking>> GetBookingsForUserAsync(string userId, CancellationToken cancellationToken)
     {
-        return
-        [
-            new() { Title = "Alcoy White Rock Swim", Note = seed % 2 == 0 ? "Save for a slow beach day" : "Pairs well with a south Cebu route" },
-            new() { Title = "Parian After-Hours Walk", Note = "Marked for heritage and photo stops" },
-            new() { Title = "North Reclamation Jazz Den", Note = "Great if you stay near the city" }
-        ];
+        if (string.IsNullOrWhiteSpace(userId))
+        {
+            return [];
+        }
+
+        try
+        {
+            return await _dbContext.Bookings
+                .Where(booking => booking.UserId == userId)
+                .OrderByDescending(booking => booking.CreatedAt)
+                .ToListAsync(cancellationToken);
+        }
+        catch (Exception exception) when (IsMissingBookingsSchema(exception))
+        {
+            return [];
+        }
+    }
+
+    private async Task<List<TravelSpotSuggestionViewModel>> GetRecommendedTravelSpotsAsync(
+        TravelPreferenceRecord? preferences,
+        IReadOnlyCollection<SavedGem> savedGems,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var selectedInterests = preferences?.Interests
+                .Select(NormalizeInterest)
+                .ToHashSet(StringComparer.OrdinalIgnoreCase) ?? [];
+            var savedTitles = savedGems
+                .Select(gem => gem.Title)
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            var spots = await _dbContext.TravelSpots
+                .AsNoTracking()
+                .OrderBy(spot => spot.Name)
+                .ToListAsync(cancellationToken);
+
+            return spots
+                .Where(spot => !savedTitles.Contains(spot.Name))
+                .Select(spot =>
+                {
+                    var normalizedCategory = NormalizeInterest(spot.Category);
+                    var interestMatch = selectedInterests.Contains(normalizedCategory);
+                    var adventureDelta = preferences is null
+                        ? 1
+                        : Math.Abs(spot.AdventureLevel - preferences.AdventureLevel);
+
+                    return new TravelSpotSuggestionViewModel
+                    {
+                        Id = spot.Id,
+                        Name = spot.Name,
+                        Location = spot.Location,
+                        Category = spot.Category,
+                        ImageUrl = string.IsNullOrWhiteSpace(spot.ImageUrl)
+                            ? "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=900&q=80"
+                            : spot.ImageUrl,
+                        MatchScore = Math.Clamp(74 + (interestMatch ? 16 : 0) + Math.Max(0, 5 - adventureDelta), 70, 98),
+                        MatchReason = interestMatch
+                            ? $"Matches your saved {BuildInterestLabel(spot.Category)} preference."
+                            : "Suggested from available Cebu destinations in the database.",
+                        BasePrice = spot.BasePrice
+                    };
+                })
+                .OrderByDescending(spot => spot.MatchScore)
+                .ThenBy(spot => spot.Name)
+                .Take(4)
+                .ToList();
+        }
+        catch (Exception exception) when (IsMissingBookingsSchema(exception))
+        {
+            return [];
+        }
+    }
+
+    private static bool IsMissingBookingsSchema(Exception exception)
+    {
+        for (var current = exception; current is not null; current = current.InnerException!)
+        {
+            if (current.Message.Contains("Bookings", StringComparison.OrdinalIgnoreCase) ||
+                current.Message.Contains("bookings", StringComparison.OrdinalIgnoreCase) ||
+                current.Message.Contains("column", StringComparison.OrdinalIgnoreCase) ||
+                current.Message.Contains("relation", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static string ExtractSelectedName(string json, string fallback)
+    {
+        try
+        {
+            using var document = System.Text.Json.JsonDocument.Parse(json);
+            return document.RootElement.TryGetProperty("Name", out var name) && !string.IsNullOrWhiteSpace(name.GetString())
+                ? name.GetString()!
+                : fallback;
+        }
+        catch
+        {
+            return fallback;
+        }
+    }
+
+    private static List<string> ExtractSelectedActivities(string json)
+    {
+        try
+        {
+            return System.Text.Json.JsonSerializer.Deserialize<List<string>>(json) ?? [];
+        }
+        catch
+        {
+            return [];
+        }
+    }
+
+    private static UserProfileBookingViewModel BuildProfileBooking(Booking booking)
+    {
+        var activities = ExtractSelectedActivities(booking.SelectedActivitiesJson);
+
+        return new UserProfileBookingViewModel
+        {
+            Id = booking.Id,
+            DestinationName = booking.DestinationName,
+            Location = booking.Location,
+            ImageUrl = string.IsNullOrWhiteSpace(booking.ImageUrl)
+                ? "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=900&q=80"
+                : booking.ImageUrl!,
+            TravelDate = booking.TravelDate.ToLocalTime().ToString("MMM d, yyyy"),
+            CreatedAt = booking.CreatedAt.ToLocalTime().ToString("MMM d, yyyy"),
+            TravelerSummary = $"{booking.TravelerType}, {booking.TravelerCount} traveler{(booking.TravelerCount == 1 ? string.Empty : "s")}",
+            Status = booking.Status,
+            SelectionType = booking.SelectionType.Equals("SystemSelected", StringComparison.OrdinalIgnoreCase)
+                ? "AI selected"
+                : "User selected",
+            Accommodation = ExtractSelectedName(booking.SelectedAccommodationJson, "Accommodation pending"),
+            Transportation = ExtractSelectedName(booking.SelectedTransportationJson, "Transport pending"),
+            Activities = activities,
+            PaymentMethod = string.IsNullOrWhiteSpace(booking.PaymentMethod) ? "Payment pending" : booking.PaymentMethod!,
+            QrCode = booking.QrCode,
+            TotalPrice = booking.TotalPrice,
+            Notes = booking.TravelerNotes ?? string.Empty
+        };
     }
 
     private static List<PastAdventureViewModel> BuildPastAdventures(int seed)
@@ -125,8 +404,25 @@ public sealed class DashboardExperienceService : IDashboardExperienceService
         ];
     }
 
-    private static TravelProfileViewModel BuildTravelProfile(int seed)
+    private static TravelProfileViewModel BuildTravelProfile(TravelPreferenceRecord? preferences, int seed)
     {
+        if (preferences is not null)
+        {
+            var interestLabels = preferences.Interests
+                .Select(BuildInterestLabel)
+                .Where(label => !string.IsNullOrWhiteSpace(label))
+                .ToList();
+
+            return new TravelProfileViewModel
+            {
+                StayPreference = $"{preferences.BudgetRange} comfort profile",
+                FoodPreference = interestLabels.Count == 0 ? "No interests selected yet" : string.Join(", ", interestLabels),
+                PacePreference = $"{preferences.TravelPace} pace, adventure level {preferences.AdventureLevel}/5",
+                Notifications = "Hidden Gem alerts and itinerary changes enabled",
+                PaymentSummary = "Add a payment method when booking persistence is enabled"
+            };
+        }
+
         return new TravelProfileViewModel
         {
             StayPreference = seed % 2 == 0 ? "Boutique hotels over luxury chains" : "Quiet design stays near local food",
@@ -137,6 +433,26 @@ public sealed class DashboardExperienceService : IDashboardExperienceService
         };
     }
 
+    private static string BuildPostImageUrl(string imageFileName)
+    {
+        return string.IsNullOrWhiteSpace(imageFileName)
+            ? "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1200&q=80"
+            : $"/uploads/destination-posts/{imageFileName}";
+    }
+
+    private static string BuildInitial(string name)
+    {
+        return name.Split(' ', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault()?[..1].ToUpperInvariant() ?? "T";
+    }
+
+    private static string BuildInterestLabel(string key)
+    {
+        return TravelInterestCatalog.Options.FirstOrDefault(option => option.Key == NormalizeInterest(key))?.Label
+            ?? key.Trim();
+    }
+
+    private static string NormalizeInterest(string value) => value.Trim().ToLowerInvariant().Replace(" ", "-");
+
     private static List<DashboardFeatureSuggestionViewModel> BuildFeatureSuggestions()
     {
         return
@@ -145,6 +461,16 @@ public sealed class DashboardExperienceService : IDashboardExperienceService
             new() { Title = "Weather-aware route swaps", Description = "Automatically suggest indoor gems or safer beach timing when conditions change." },
             new() { Title = "Group vibe matching", Description = "Merge multiple travelers' quiz results into one route everyone can tolerate, maybe even love." },
             new() { Title = "Expense split and travel wallet", Description = "Let flashpacker groups split deposits, perks, and concierge add-ons inside SogboGo." }
+        ];
+    }
+
+    private static List<DashboardFeatureSuggestionViewModel> BuildProfileLinkedContentPlaceholders()
+    {
+        return
+        [
+            new() { Title = "Saved destinations", Description = "Destinations saved from AI picks and future spot pages appear on this profile." },
+            new() { Title = "Recommendations", Description = "Database travel spots are ranked against the latest survey preferences." },
+            new() { Title = "AI-curated suggestions", Description = "A future assistant can use bookings, saved gems, and survey notes to assemble a profile-aware route." }
         ];
     }
 }

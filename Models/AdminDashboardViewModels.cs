@@ -10,7 +10,18 @@ public sealed class AdminDashboardViewModel
     public List<PipelineColumnViewModel> Pipeline { get; set; } = [];
     public List<FlashpackerProfileViewModel> Flashpackers { get; set; } = [];
     public List<PartnerAdminViewModel> Partners { get; set; } = [];
+    public List<BookingAdminViewModel> Bookings { get; set; } = [];
     public List<CollaborationSuggestionViewModel> CollaborationQueue { get; set; } = [];
+}
+
+public sealed class BookingAdminViewModel
+{
+    public string Id { get; set; } = string.Empty;
+    public string UserName { get; set; } = string.Empty;
+    public string Destination { get; set; } = string.Empty;
+    public string Date { get; set; } = string.Empty;
+    public string Status { get; set; } = string.Empty;
+    public decimal Amount { get; set; }
 }
 
 public sealed class AdminKpiViewModel

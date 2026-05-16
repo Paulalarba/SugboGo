@@ -9,27 +9,50 @@
 <section class="preference-flow">
     <div class="preference-shell">
         <header class="preference-hero lp-reveal">
-            <p class="lp-kicker">Step 2 of 3</p>
-            <h1>Tell us what Cebu should feel like.</h1>
-            <p>Your answers are saved to your secure traveler profile, then used to rank Cebu destinations around your interests.</p>
+            <p class="lp-kicker">Preference setup</p>
+            <h1>Shape your Cebu recommendations.</h1>
+            <p>Choose the places and activities you care about. SugboGo saves them to your account and uses them to rank Cebu spots later.</p>
         </header>
 
         <form class="preference-form lp-reveal" asp-controller="Booking" asp-action="Survey" method="post">
             @Html.AntiForgeryToken()
+            <input asp-for="ReturnUrl" type="hidden" />
 
-            <section class="preference-section" aria-labelledby="interests-title">
+            <section class="preference-section" aria-labelledby="places-title">
                 <div>
-                    <p class="lp-kicker">Travel interests</p>
-                    <h2 id="interests-title">Choose every Cebu vibe that fits.</h2>
-                    <span class="auth-validation" asp-validation-for="SelectedInterests"></span>
+                    <p class="lp-kicker">Places of interest</p>
+                    <h2 id="places-title">Where do you want Cebu to take you?</h2>
+                    <span class="auth-validation" asp-validation-for="SelectedPlaces"></span>
                 </div>
 
                 <div class="interest-grid">
-                    @foreach (var option in Model.InterestOptions)
+                    @foreach (var option in Model.PlaceOptions)
                     {
-                        var isChecked = Model.SelectedInterests.Contains(option.Key);
+                        var isChecked = Model.SelectedPlaces.Contains(option.Key);
                         <label class="interest-option">
-                            <input type="checkbox" name="SelectedInterests" value="@option.Key" checked="@isChecked" />
+                            <input type="checkbox" name="SelectedPlaces" value="@option.Key" checked="@isChecked" />
+                            <span>
+                                <strong>@option.Label</strong>
+                                <small>@option.Description</small>
+                            </span>
+                        </label>
+                    }
+                </div>
+            </section>
+
+            <section class="preference-section" aria-labelledby="activities-title">
+                <div>
+                    <p class="lp-kicker">Activity types</p>
+                    <h2 id="activities-title">What should your days include?</h2>
+                    <span class="auth-validation" asp-validation-for="SelectedActivities"></span>
+                </div>
+
+                <div class="interest-grid interest-grid--compact">
+                    @foreach (var option in Model.ActivityOptions)
+                    {
+                        var isChecked = Model.SelectedActivities.Contains(option.Key);
+                        <label class="interest-option">
+                            <input type="checkbox" name="SelectedActivities" value="@option.Key" checked="@isChecked" />
                             <span>
                                 <strong>@option.Label</strong>
                                 <small>@option.Description</small>
@@ -41,10 +64,14 @@
 
             <section class="preference-section preference-section--split" aria-label="Trip style">
                 <label class="preference-field">
-                    <span>Adventure level</span>
+                    <span>
+                        Adventure level:
+                        <strong id="adventureLevelValue">@Model.AdventureLevel/5</strong>
+                    </span>
                     <input asp-for="AdventureLevel" type="range" min="1" max="5" />
                     <small>1 is easygoing, 5 is high-energy.</small>
                 </label>
+
 
                 <label class="preference-field">
                     <span>Travel pace</span>
@@ -74,7 +101,7 @@
             </section>
 
             <div class="preference-actions">
-                <button class="booking-primary" type="submit">Generate Cebu recommendations</button>
+                <button class="booking-primary" type="submit">Save preferences</button>
                 <a class="booking-link-btn" asp-controller="Home" asp-action="Index">Not now</a>
             </div>
         </form>
@@ -83,4 +110,21 @@
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const slider = document.querySelector('input[name="AdventureLevel"]');
+            const value = document.getElementById('adventureLevelValue');
+
+            if (!slider || !value) return;
+
+            const syncAdventureLevel = () => {
+                value.textContent = `${slider.value}/5`;
+            };
+
+            slider.addEventListener('input', syncAdventureLevel);
+            syncAdventureLevel();
+        });
+    </script>
 }
+    

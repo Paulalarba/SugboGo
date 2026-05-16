@@ -8,4 +8,10 @@ public sealed class UserAccount
     public string PasswordHash { get; set; } = string.Empty;
     public string Role { get; set; } = "Client";
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
+
+    // Navigation properties
+    public ICollection<Booking> Bookings { get; set; } = [];
+    public ICollection<SavedGem> SavedGems { get; set; } = [];
+    public ICollection<DestinationPost> DestinationPosts { get; set; } = [];
+    public ICollection<TravelPreferenceRecord> TravelPreferences { get; set; } = [];
 }

@@ -132,7 +132,7 @@ public sealed class AuthApiController : ControllerBase
         await HttpContext.SignInAsync(
             CookieAuthenticationDefaults.AuthenticationScheme,
             new ClaimsPrincipal(identity),
-            new AuthenticationProperties { IsPersistent = true });
+            new AuthenticationProperties { IsPersistent = false });
     }
 
     private static string NormalizeEmail(string email) => (email ?? string.Empty).Trim().ToLowerInvariant();

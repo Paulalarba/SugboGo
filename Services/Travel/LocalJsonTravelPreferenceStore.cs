@@ -14,6 +14,20 @@ public sealed class LocalJsonTravelPreferenceStore : ITravelPreferenceStore
         _filePath = Path.Combine(environment.ContentRootPath, "App_Data", "travel-preferences.json");
     }
 
+    public async Task<List<TravelPreferenceRecord>> GetAllAsync(CancellationToken cancellationToken = default)
+    {
+        await FileLock.WaitAsync(cancellationToken);
+        try
+        {
+            var preferences = await ReadPreferencesAsync(cancellationToken);
+            return preferences.OrderByDescending(preference => preference.UpdatedAt).ToList();
+        }
+        finally
+        {
+            FileLock.Release();
+        }
+    }
+
     public async Task<TravelPreferenceRecord?> FindLatestByUserIdAsync(string userId, CancellationToken cancellationToken = default)
     {
         await FileLock.WaitAsync(cancellationToken);

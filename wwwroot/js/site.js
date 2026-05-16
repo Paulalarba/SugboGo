@@ -335,75 +335,248 @@ const initLandingPage = () => {
 };
 
 const initBookingFlow = () => {
-    const flow = document.querySelector('[data-booking-flow]');
+    const wizard = document.querySelector('[data-booking-wizard]');
 
-    if (!flow) {
+    if (!wizard) {
         return;
     }
 
-    const stages = [...flow.querySelectorAll('[data-stage]')];
-    const progressSteps = [...flow.querySelectorAll('[data-progress-step]')];
-    const stageButtons = [...flow.querySelectorAll('[data-next-stage]')];
-    const swapButtons = [...flow.querySelectorAll('[data-swap-button]')];
-    const payButtons = [...flow.querySelectorAll('[data-pay-method]')];
-    const checkoutForm = flow.querySelector('[data-checkout-form]');
-    const alternatives = [
-        'Mactan Ceramic Courtyard',
-        'Liloan Moon Tide Table',
-        'Busay Garden Hideout',
-        'Alcoy White Rock Swim',
-        'Kamagayan Vinyl Supper'
-    ];
+    const panels = [...wizard.querySelectorAll('[data-booking-step]')];
+    const indicators = [...wizard.querySelectorAll('[data-step-indicator]')];
+    const basePrice = Number(wizard.dataset.basePrice || '0');
+    const destinationId = wizard.dataset.destinationId || '';
+    const bookingType = wizard.dataset.bookingType || 'UserSelected';
+    const destination = wizard.dataset.destination || '';
+    const location = wizard.dataset.location || 'Cebu, Philippines';
+    const imageUrl = wizard.dataset.imageUrl || wizard.querySelector('.booking-hero img')?.src || '';
+    const antiForgeryToken = wizard.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
 
-    const setStage = (stageName) => {
-        stages.forEach((stage) => {
-            const isActive = stage.dataset.stage === stageName;
+    // Elements
+    const totalDisplay = wizard.querySelector('[data-total-display]');
+    const addonsDisplay = wizard.querySelector('[data-addons-display]');
+    const addonsRow = wizard.querySelector('[data-add-ons-row]');
+    const taxesDisplay = wizard.querySelector('[data-taxes-display]');
+    const reviewSummary = wizard.querySelector('[data-review-summary]');
+    const paymentSim = wizard.querySelector('[data-payment-sim]');
+    const confIdDisplay = wizard.querySelector('[data-conf-id]');
+    const submitBookingButton = wizard.querySelector('#btn-submit-booking');
 
-            stage.classList.toggle('is-active', isActive);
-            stage.setAttribute('aria-hidden', String(!isActive));
-        });
-
-        progressSteps.forEach((step) => {
-            step.classList.toggle('is-active', step.dataset.progressStep === stageName);
-        });
-
-        flow.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    const state = {
+        destinationId,
+        bookingType,
+        destinationName: destination,
+        imageUrl,
+        location,
+        travelDate: '',
+        travelerType: 'Solo',
+        travelerCount: 1,
+        selectedActivities: [],
+        selectedAccommodation: '',
+        selectedTransportation: '',
+        travelerNotes: '',
+        basePrice: basePrice,
+        addonsPrice: 0,
+        taxesAndFees: 0,
+        totalPrice: basePrice,
+        paymentMethod: 'GCash',
+        isSubmitting: false
     };
 
-    stageButtons.forEach((button) => {
-        button.addEventListener('click', () => setStage(button.dataset.nextStage));
-    });
+    const showBookingError = (message) => {
+        if (!paymentSim) {
+            return;
+        }
 
-    swapButtons.forEach((button, index) => {
-        button.addEventListener('click', () => {
-            const item = button.closest('[data-journey-item]');
-            const title = item?.querySelector('[data-item-title]');
-            const note = item?.querySelector('[data-swap-note]');
-            const nextTitle = alternatives[(index + Number(button.dataset.swapCount || '0')) % alternatives.length];
+        paymentSim.hidden = false;
+        paymentSim.innerHTML = `<p>${escapeHtml(message)}</p>`;
+    };
 
-            button.dataset.swapCount = String(Number(button.dataset.swapCount || '0') + 1);
+    const showBookingProgress = () => {
+        if (!paymentSim) {
+            return;
+        }
 
-            if (title) {
-                title.textContent = nextTitle;
-            }
+        paymentSim.hidden = false;
+        paymentSim.innerHTML = '<div class="spinner"></div><p>Securing your Cebu adventure...</p>';
+    };
 
-            if (note) {
-                note.textContent = 'Swapped. AI found a quieter gem with a similar comfort profile.';
-            }
+    const updatePricing = () => {
+        let addons = 0;
+
+        // Activities
+        wizard.querySelectorAll('input[name="activities"]:checked').forEach((cb) => {
+            addons += Number(cb.dataset.price || '0');
         });
-    });
 
-    payButtons.forEach((button) => {
-        button.addEventListener('click', () => {
-            button.textContent = 'Authorizing...';
-            window.setTimeout(() => setStage('success'), 520);
+        // Accommodation
+        const selectedAcc = wizard.querySelector('input[name="accommodation"]:checked');
+        addons += Number(selectedAcc?.dataset.price || '0');
+
+        // Transportation
+        const selectedTrans = wizard.querySelector('input[name="transportation"]:checked');
+        addons += Number(selectedTrans?.dataset.price || '0');
+
+        const taxes = Math.round((basePrice + addons) * 0.12);
+        const total = basePrice + addons + taxes;
+
+        state.addonsPrice = addons;
+        state.addOnsPrice = addons;
+        state.taxesAndFees = taxes;
+        state.totalPrice = total;
+
+        if (totalDisplay) totalDisplay.textContent = total.toLocaleString();
+        if (addonsDisplay) addonsDisplay.textContent = addons.toLocaleString();
+        if (taxesDisplay) taxesDisplay.textContent = taxes.toLocaleString();
+        if (addonsRow) addonsRow.hidden = addons === 0;
+    };
+
+    const setStep = (stepName) => {
+        if ((stepName === 'review' || stepName === 'payment') && !captureFormState()) {
+            return;
+        }
+
+        panels.forEach((p) => {
+            const isActive = p.dataset.bookingStep === stepName;
+            p.classList.toggle('is-active', isActive);
         });
+
+        indicators.forEach((ind) => {
+            ind.classList.toggle('is-active', ind.dataset.stepIndicator === stepName);
+        });
+
+        if (stepName === 'review') {
+            renderReview();
+        }
+
+        wizard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    };
+
+    const captureFormState = () => {
+        state.travelDate = wizard.querySelector('input[name="travelDate"]')?.value || '';
+        const travelerSelect = wizard.querySelector('select[name="travelerType"]');
+        state.travelerType = travelerSelect?.value || wizard.querySelector('input[name="travelerType"]:checked')?.value || 'Solo';
+        state.travelerCount = Number(travelerSelect?.selectedOptions?.[0]?.dataset.count || state.travelerCount || '1');
+        state.selectedActivities = [...wizard.querySelectorAll('input[name="activities"]:checked')].map(cb => cb.value);
+        state.selectedAccommodation = wizard.querySelector('input[name="accommodation"]:checked')?.value || '';
+        state.selectedTransportation = wizard.querySelector('input[name="transportation"]:checked')?.value || '';
+        state.travelerNotes = wizard.querySelector('textarea[name="travelerNotes"]')?.value || '';
+
+        if (!state.travelDate) {
+            showBookingError('Please choose a travel date before continuing.');
+            wizard.querySelector('input[name="travelDate"]')?.focus();
+            return false;
+        }
+
+        return true;
+    };
+
+    const renderReview = () => {
+        if (!reviewSummary || !captureFormState()) return;
+
+        const row = (label, value) => `<div class="review-item"><strong>${escapeHtml(label)}</strong><span>${escapeHtml(value)}</span></div>`;
+        reviewSummary.innerHTML = `
+            <div class="review-grid">
+                ${row('Destination', state.destinationName)}
+                ${row('Travel date', state.travelDate)}
+                ${row('Travelers', `${state.travelerType} (${state.travelerCount})`)}
+                ${row('Stay', state.selectedAccommodation)}
+                ${row('Transport', state.selectedTransportation)}
+                ${row('Activities', state.selectedActivities.length > 0 ? state.selectedActivities.join(', ') : 'None selected')}
+                ${row('Notes', state.travelerNotes || 'No specific requests.')}
+                <div class="review-total"><strong>Final price: PHP ${state.totalPrice.toLocaleString()}</strong></div>
+            </div>
+        `;
+    };
+
+    const selectPaymentMethod = (method) => {
+        state.paymentMethod = method;
+        wizard.querySelectorAll('[data-pay-method]').forEach(btn => {
+            const isSelected = btn.dataset.payMethod === method;
+            btn.classList.toggle('is-active', isSelected);
+            btn.setAttribute('aria-pressed', String(isSelected));
+        });
+    };
+
+    const submitBooking = () => {
+        if (state.isSubmitting || !captureFormState()) {
+            return;
+        }
+
+        state.isSubmitting = true;
+        if (submitBookingButton) {
+            submitBookingButton.disabled = true;
+            submitBookingButton.textContent = 'Completing...';
+        }
+        showBookingProgress();
+
+        fetch('/Booking/ConfirmBooking', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'RequestVerificationToken': antiForgeryToken
+            },
+            body: JSON.stringify(state)
+        })
+            .then(async res => {
+                const payload = await res.json().catch(() => null);
+                if (!res.ok || !payload?.success) {
+                    throw new Error(payload?.message || 'Payment could not be completed. Please try again.');
+                }
+
+                return payload;
+            })
+            .then(data => {
+                if (confIdDisplay) confIdDisplay.textContent = data.bookingId.substring(0, 8).toUpperCase();
+                renderQr(data.qrCode || data.bookingId);
+                setTimeout(() => setStep('success'), 900);
+            })
+            .catch((error) => {
+                state.isSubmitting = false;
+                if (submitBookingButton) {
+                    submitBookingButton.disabled = false;
+                    submitBookingButton.textContent = 'Complete Booking';
+                }
+                showBookingError(error.message);
+            });
+    };
+
+    const escapeHtml = (value) => String(value)
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#039;');
+
+    const renderQr = (code) => {
+        const target = wizard.querySelector('[data-qr-code-placeholder]');
+
+        if (!target) {
+            return;
+        }
+
+        const bits = String(code || 'SUGBOGO').padEnd(25, '0').slice(0, 25);
+        target.innerHTML = bits.split('').map((char, index) => {
+            const filled = ((char.charCodeAt(0) + index) % 3) !== 0;
+            return `<i class="${filled ? 'is-filled' : ''}"></i>`;
+        }).join('');
+    };
+
+    // Events
+    wizard.querySelectorAll('[data-goto-step]').forEach(btn => {
+        btn.addEventListener('click', () => setStep(btn.dataset.gotoStep));
     });
 
-    checkoutForm?.addEventListener('submit', (event) => {
-        event.preventDefault();
-        setStage('success');
+    wizard.querySelectorAll('input, select').forEach(input => {
+        input.addEventListener('change', updatePricing);
     });
+
+    wizard.querySelectorAll('[data-pay-method]').forEach(btn => {
+        btn.addEventListener('click', () => selectPaymentMethod(btn.dataset.payMethod));
+    });
+
+    updatePricing();
+    selectPaymentMethod(state.paymentMethod);
+    submitBookingButton?.addEventListener('click', submitBooking);
 };
 
 const initAccountFlow = () => {
@@ -434,6 +607,99 @@ const initDashboard = () => {
     const surpriseTitle = dashboard.querySelector('[data-surprise-title]');
     const surpriseReason = dashboard.querySelector('[data-surprise-reason]');
     const gems = [...dashboard.querySelectorAll('[data-surprise-gem]')];
+    const feedForm = dashboard.querySelector('[data-feed-form]');
+    const feedList = dashboard.querySelector('[data-feed-list]');
+    const photoInput = dashboard.querySelector('[data-feed-photo]');
+    const photoPreview = dashboard.querySelector('[data-feed-preview]');
+    const focusComposer = dashboard.querySelector('[data-focus-composer]');
+    const currentInitial = dashboard.querySelector('.feed-profile-chip')?.textContent?.trim() || 'T';
+    const currentName = dashboard.querySelector('.feed-profile-card h2')?.textContent?.trim() || 'Traveler';
+    const antiForgeryToken = dashboard.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
+    const savedList = dashboard.querySelector('[data-saved-list]');
+    const noSavedGemsMessage = dashboard.querySelector('[data-no-saved-gems]');
+    const escapeHtml = (value) => String(value)
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#039;');
+
+    const bindSavedGem = (li) => {
+        const removeBtn = li.querySelector('[data-remove-gem]');
+
+        removeBtn?.addEventListener('click', () => {
+            const removeUrl = removeBtn.dataset.removeUrl;
+
+            if (removeUrl) {
+                fetch(removeUrl, {
+                    method: 'POST',
+                    headers: {
+                        'RequestVerificationToken': antiForgeryToken
+                    }
+                }).then((response) => {
+                    if (response.ok) {
+                        li.remove();
+
+                        if (savedList && savedList.children.length === 0) {
+                            savedList.remove();
+                            const p = document.createElement('p');
+                            p.dataset.noSavedGems = '';
+                            p.textContent = 'Saved gems will appear here once save actions are persisted.';
+                            dashboard.querySelector('#gem-vault-panel')?.appendChild(p);
+                        }
+                    }
+                });
+            }
+        });
+    };
+
+    dashboard.querySelectorAll('[data-saved-list] li').forEach(bindSavedGem);
+
+    dashboard.querySelectorAll('[data-save-gem]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+            const saveUrl = btn.dataset.saveUrl;
+
+            if (saveUrl) {
+                fetch(saveUrl, {
+                    method: 'POST',
+                    headers: {
+                        'RequestVerificationToken': antiForgeryToken
+                    }
+                })
+                    .then((response) => response.ok ? response.json() : null)
+                    .then((data) => {
+                        if (!data) {
+                            return;
+                        }
+
+                        btn.textContent = 'Saved';
+                        btn.disabled = true;
+
+                        let list = dashboard.querySelector('[data-saved-list]');
+
+                        if (!list) {
+                            dashboard.querySelector('[data-no-saved-gems]')?.remove();
+                            list = document.createElement('ul');
+                            list.className = 'feed-saved-list';
+                            list.dataset.savedList = '';
+                            dashboard.querySelector('#gem-vault-panel')?.appendChild(list);
+                        }
+
+                        const li = document.createElement('li');
+                        li.dataset.savedGemId = data.id;
+                        li.innerHTML = `
+                            <div>
+                                <strong>${escapeHtml(data.title)}</strong>
+                                <span>Just saved from recommendations.</span>
+                            </div>
+                            <button type="button" data-remove-gem data-remove-url="/Dashboard/RemoveGem?gemId=${data.id}" aria-label="Remove gem">&times;</button>`;
+
+                        list.prepend(li);
+                        bindSavedGem(li);
+                    });
+            }
+        });
+    });
 
     vibeTags.forEach((tag) => {
         tag.addEventListener('click', () => {
@@ -455,6 +721,224 @@ const initDashboard = () => {
         surpriseReason.textContent = gem.dataset.reason || 'Matched to your travel profile.';
         surprisePanel.hidden = false;
         surprisePanel.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
+
+    const bindFeedPost = (post) => {
+        const likeButton = post.querySelector('[data-like-button]');
+        const commentToggle = post.querySelector('[data-comment-toggle]');
+        const shareButton = post.querySelector('[data-share-button]');
+        const commentForm = post.querySelector('[data-comment-form]');
+        const commentInput = commentForm?.querySelector('input');
+        const comments = post.querySelector('[data-comments]');
+        const likeCount = post.querySelector('[data-like-count]');
+        const commentCount = post.querySelector('[data-comment-count]');
+
+        likeButton?.addEventListener('click', () => {
+            const likeUrl = likeButton.dataset.likeUrl;
+
+            if (likeUrl) {
+                fetch(likeUrl, {
+                    method: 'POST',
+                    headers: {
+                        'RequestVerificationToken': antiForgeryToken
+                    }
+                })
+                    .then((response) => response.ok ? response.json() : null)
+                    .then((data) => {
+                        if (!data || !likeCount) {
+                            return;
+                        }
+
+                        likeButton.classList.add('is-liked');
+                        likeCount.textContent = String(data.likes);
+                    })
+                    .catch(() => { });
+                return;
+            }
+
+            const isLiked = likeButton.classList.toggle('is-liked');
+            const currentLikes = Number(likeCount?.textContent || '0');
+
+            if (likeCount) {
+                likeCount.textContent = String(Math.max(0, currentLikes + (isLiked ? 1 : -1)));
+            }
+        });
+
+        commentToggle?.addEventListener('click', () => {
+            commentInput?.focus();
+        });
+
+        shareButton?.addEventListener('click', async () => {
+            const destination = post.querySelector('.feed-post__title-row h2')?.textContent?.trim() || 'Cebu destination';
+            const text = `Check out ${destination} on SugboGo.`;
+
+            if (navigator.share) {
+                await navigator.share({ title: destination, text }).catch(() => { });
+                return;
+            }
+
+            await navigator.clipboard?.writeText(text).catch(() => { });
+            shareButton.textContent = 'Copied';
+            window.setTimeout(() => {
+                shareButton.textContent = 'Share';
+            }, 1200);
+        });
+
+        commentForm?.addEventListener('submit', (event) => {
+            event.preventDefault();
+
+            if (!commentInput || !comments || !commentInput.value.trim()) {
+                return;
+            }
+
+            const commentUrl = commentForm.dataset.commentUrl;
+            const text = commentInput.value.trim();
+
+            if (commentUrl) {
+                const formData = new FormData();
+                formData.append('text', text);
+
+                fetch(commentUrl, {
+                    method: 'POST',
+                    headers: {
+                        'RequestVerificationToken': antiForgeryToken
+                    },
+                    body: formData
+                })
+                    .then((response) => response.ok ? response.json() : null)
+                    .then((data) => {
+                        if (!data) {
+                            return;
+                        }
+
+                        const comment = document.createElement('div');
+                        comment.className = 'feed-comment';
+                        comment.innerHTML = `<strong>${escapeHtml(data.authorName)}</strong> ${escapeHtml(data.text)} <small>${escapeHtml(data.timestamp)}</small>`;
+                        comments.prepend(comment);
+
+                        if (commentCount) {
+                            commentCount.textContent = String(data.commentCount);
+                        }
+
+                        commentInput.value = '';
+                    })
+                    .catch(() => { });
+                return;
+            }
+
+            const comment = document.createElement('div');
+            comment.className = 'feed-comment';
+            comment.innerHTML = `<strong>${escapeHtml(currentName)}</strong> ${escapeHtml(text)}`;
+            comments.prepend(comment);
+
+            if (commentCount) {
+                commentCount.textContent = String(Number(commentCount.textContent || '0') + 1);
+            }
+
+            commentInput.value = '';
+        });
+    };
+
+    dashboard.querySelectorAll('[data-feed-post]').forEach(bindFeedPost);
+
+    focusComposer?.addEventListener('click', () => {
+        feedForm?.querySelector('input[name="destination"]')?.focus();
+    });
+
+    photoInput?.addEventListener('change', () => {
+        const file = photoInput.files?.[0];
+
+        if (!file || !photoPreview) {
+            return;
+        }
+
+        photoPreview.src = URL.createObjectURL(file);
+        photoPreview.hidden = false;
+    });
+
+    feedForm?.addEventListener('submit', (event) => {
+        if (feedForm.dataset.serverForm !== undefined) {
+            return;
+        }
+
+        event.preventDefault();
+
+        if (!feedList) {
+            return;
+        }
+
+        const data = new FormData(feedForm);
+        const destination = String(data.get('destination') || '').trim();
+        const location = String(data.get('location') || '').trim();
+        const description = String(data.get('description') || '').trim();
+        const caption = String(data.get('caption') || '').trim();
+        const tag = String(data.get('tag') || 'Cebu').trim();
+        const imageUrl = photoPreview && !photoPreview.hidden
+            ? photoPreview.src
+            : 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1200&q=80';
+
+        if (!destination || !location || !description) {
+            return;
+        }
+
+        const post = document.createElement('article');
+        post.className = 'feed-post';
+        post.dataset.feedPost = '';
+        post.innerHTML = `
+            <header class="feed-post__header">
+                <div class="feed-avatar">${escapeHtml(currentInitial)}</div>
+                <div>
+                    <strong>${escapeHtml(currentName)}</strong>
+                    <span>SugboGo client · Just now</span>
+                </div>
+            </header>
+            <div class="feed-post__body">
+                <div class="feed-post__title-row">
+                    <div>
+                        <h2>${escapeHtml(destination)}</h2>
+                        <p>${escapeHtml(location)}</p>
+                    </div>
+                    <span>New AI signal</span>
+                </div>
+                <p>${escapeHtml(description)}</p>
+                <p class="feed-caption">${escapeHtml(caption || 'Fresh Cebu travel note.')}</p>
+                <div class="feed-tags">
+                    <span>#${escapeHtml(tag)}</span>
+                    <span>#Cebu</span>
+                </div>
+            </div>
+            <img class="feed-post__image" src="${escapeHtml(imageUrl)}" alt="${escapeHtml(destination)} in ${escapeHtml(location)}" />
+            <div class="feed-ai-note">
+                <strong>Recommended for others</strong>
+                <span>This post will train recommendations through its tags, likes, comments, and destination location.</span>
+            </div>
+            <footer class="feed-engagement">
+                <div class="feed-counts">
+                    <span><b data-like-count>0</b> likes</span>
+                    <span><b data-comment-count>0</b> comments</span>
+                </div>
+                <div class="feed-actions">
+                    <button type="button" data-like-button>Like</button>
+                    <button type="button" data-comment-toggle>Comment</button>
+                    <button type="button" data-share-button>Share</button>
+                </div>
+                <form class="feed-comment-form" data-comment-form>
+                    <input type="text" placeholder="Write a comment..." aria-label="Write a comment" required />
+                    <button type="submit">Send</button>
+                </form>
+                <div class="feed-comments" data-comments></div>
+            </footer>`;
+
+        feedList.prepend(post);
+        bindFeedPost(post);
+        feedForm.reset();
+
+        if (photoPreview) {
+            photoPreview.hidden = true;
+            photoPreview.removeAttribute('src');
+        }
+
+        post.scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
 };
 
@@ -513,8 +997,23 @@ const initAdminDashboard = () => {
     });
 };
 
+const initSessionGuard = () => {
+    const isAuthenticated = document.body.dataset.authenticated === 'true';
+
+    if (!isAuthenticated) {
+        sessionStorage.removeItem('sg_session_active');
+        return;
+    }
+
+    // Mark this tab's session as active so authenticated pages load normally.
+    // Previously this flag was set AFTER a logout check, which meant every
+    // fresh sign-in was immediately logged out before the dashboard loaded.
+    sessionStorage.setItem('sg_session_active', 'true');
+};
+
 document.addEventListener('DOMContentLoaded', () => {
     document.documentElement.classList.add('sg-motion-ready');
+    initSessionGuard();
     initMountainRange();
     initDestinationCinema();
     initLandingPage();
@@ -522,4 +1021,24 @@ document.addEventListener('DOMContentLoaded', () => {
     initAccountFlow();
     initDashboard();
     initAdminDashboard();
+});
+
+/* Booking Modal Logic */
+document.addEventListener('click', (e) => {
+    if (e.target.closest('.dest-card')) {
+        e.target.closest('.booking-modal')?.setAttribute('hidden', '');
+        return;
+    }
+
+    if (e.target.closest('[data-modal-open]')) {
+        e.preventDefault();
+        const id = e.target.closest('[data-modal-open]').getAttribute('href');
+        document.querySelector(id)?.removeAttribute('hidden');
+    }
+    if (e.target.closest('[data-modal-close]')) {
+        e.target.closest('.booking-modal').setAttribute('hidden', '');
+    }
+    if (e.target.classList.contains('booking-modal')) {
+        e.target.setAttribute('hidden', '');
+    }
 });

@@ -4,13 +4,49 @@
     ViewData["Title"] = "AI Cebu Recommendations";
 }
 
+<style>
+    .match-bar-wrap {
+        margin: 6px 0 10px;
+    }
+
+    .match-bar-track {
+        height: 6px;
+        border-radius: 3px;
+        background: var(--lp-line);
+        overflow: hidden;
+    }
+
+    .match-bar-fill {
+        height: 100%;
+        border-radius: 3px;
+        background: var(--lp-blue);
+        transition: width 0.6s ease;
+    }
+
+    .match-score-label {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 4px;
+        font-size: 0.82rem;
+        font-weight: 700;
+        color: var(--lp-blue);
+    }
+</style>
+
 <section class="recommendation-flow">
     <div class="recommendation-shell">
         <header class="recommendation-hero lp-reveal">
             <div>
-                <p class="lp-kicker">Step 3 of 3</p>
+                <p class="lp-kicker">AI Recommendations · Step 3 of 4</p>
                 <h1>Your best Cebu matches.</h1>
-                <p>These recommendations are ranked from your saved survey: @string.Join(", ", Model.Preferences.Interests).</p>
+                <p>
+                    Ranked from your interests in
+                    <strong>@string.Join(", ", Model.Preferences.PlaceInterests)</strong>
+                    and activities like
+                    <strong>@string.Join(", ", Model.Preferences.ActivityInterests)</strong>.
+                    Your selected adventure level is <strong>@Model.Preferences.AdventureLevel/5</strong>. Pick one to book.
+                </p>
             </div>
             <a class="booking-link-btn" asp-controller="Booking" asp-action="Survey">Update preferences</a>
         </header>
@@ -22,18 +58,34 @@
                     <img src="@item.Destination.ImageUrl" alt="@item.Destination.Name in @item.Destination.Location" />
                     <div class="recommendation-card__body">
                         <div class="recommendation-card__score">
-                            <span>@item.MatchScore% match</span>
-                            <small>@item.Destination.Location</small>
+                            <small>Adventure level @item.Destination.AdventureLevel/5</small>   
                         </div>
                         <h2>@item.Destination.Name</h2>
+
+                        <div class="match-bar-wrap">
+                            <div class="match-score-label">
+                                <span>AI Match</span>
+                                <span>@item.MatchScore%</span>
+                            </div>
+                            <div class="match-bar-track">
+                                <div class="match-bar-fill" style="width:@(item.MatchScore)%"></div>
+                            </div>
+                        </div>
+
                         <p>@item.Destination.Summary</p>
+
                         <div class="recommendation-tags">
                             @foreach (var category in item.Destination.Categories)
                             {
                                 <span>@category</span>
                             }
                         </div>
+
                         <strong>@item.Reason</strong>
+
+                        <div class="recommendation-card__actions">
+                            <a href="/Booking/Index?spotId=@item.Destination.Id&type=SystemSelected" class="booking-primary">Book this trip</a>
+                        </div>
                     </div>
                 </article>
             }
@@ -44,7 +96,6 @@
                 <p class="lp-kicker">How the AI recommendation system works</p>
                 <h2 id="ai-title">Transparent now, smarter over time.</h2>
             </div>
-
             <div class="ai-explainer__grid">
                 @foreach (var step in Model.Explanation)
                 {
@@ -53,14 +104,6 @@
                         <p>@step.Body</p>
                     </article>
                 }
-            </div>
-
-            <div class="tech-stack">
-                <h3>Suggested implementation stack</h3>
-                <p><strong>Authentication:</strong> Google OAuth or Supabase Auth with Google provider, storing only the user ID, email, and profile metadata needed for booking.</p>
-                <p><strong>Cloud database:</strong> Supabase Postgres with row-level security, encrypted connection strings, and separate tables for users, travel preferences, destinations, feedback, and booking events.</p>
-                <p><strong>AI tools:</strong> OpenAI embeddings for semantic matching, GPT models for natural-language itinerary explanations, and a deterministic scoring layer for auditable ranking.</p>
-                <p><strong>APIs:</strong> Google Places API for place metadata, Maps/Routes API for travel time, Stripe or PayMongo for payments, and Supabase Edge Functions or ASP.NET services for secure recommendation calls.</p>
             </div>
         </section>
     </div>

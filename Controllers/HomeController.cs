@@ -8,6 +8,13 @@ namespace SugboGo.Controllers
     {
         public IActionResult Index()
         {
+            if (User.Identity?.IsAuthenticated == true)
+            {
+                return User.IsInRole("Admin")
+                    ? RedirectToAction("Index", "Admin")
+                    : RedirectToAction("Index", "Dashboard");
+            }
+
             return View();
         }
 

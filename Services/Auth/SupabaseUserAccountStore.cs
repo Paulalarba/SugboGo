@@ -1,3 +1,4 @@
+
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -13,6 +14,11 @@ public sealed class SupabaseOptions
     public string ServiceRoleKey { get; set; } = string.Empty;
     public string UsersTable { get; set; } = "sogbogo_users";
     public string PreferencesTable { get; set; } = "sogbogo_travel_preferences";
+    public string DestinationPostsTable { get; set; } = "sogbogo_destination_posts";
+    public string SavedGemsTable { get; set; } = "sogbogo_saved_gems";
+    public string AdminGemsTable { get; set; } = "sogbogo_admin_gems";
+    public string ItineraryTemplatesTable { get; set; } = "sogbogo_itinerary_templates";
+    public string AdminPartnersTable { get; set; } = "sogbogo_admin_partners";
 }
 
 public sealed class SupabaseUserAccountStore : IUserAccountStore
@@ -29,6 +35,25 @@ public sealed class SupabaseUserAccountStore : IUserAccountStore
         _httpClient.BaseAddress = new Uri(_options.Url.TrimEnd('/') + "/rest/v1/");
         _httpClient.DefaultRequestHeaders.Add("apikey", _options.ServiceRoleKey);
         _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", _options.ServiceRoleKey);
+    }
+
+    public async Task<List<UserAccount>> GetAllAsync(CancellationToken cancellationToken = default)
+    {
+        using var response = await _httpClient.GetAsync($"{_options.UsersTable}?select=id,email,full_name,password_hash,role,created_at&order=created_at.desc", cancellationToken);
+        response.EnsureSuccessStatusCode();
+
+        await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
+        var rows = await JsonSerializer.DeserializeAsync<List<SupabaseUserRow>>(stream, _jsonOptions, cancellationToken) ?? [];
+
+        return rows.Select(row => new UserAccount
+        {
+            Id = row.Id,
+            Email = row.Email,
+            FullName = row.FullName,
+            PasswordHash = row.PasswordHash,
+            Role = AccountRoles.Normalize(row.Role),
+            CreatedAt = row.CreatedAt
+        }).ToList();
     }
 
     public async Task<UserAccount?> FindByEmailAsync(string email, CancellationToken cancellationToken = default)

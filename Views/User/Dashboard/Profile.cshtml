@@ -1,0 +1,219 @@
+@model UserProfilePageViewModel
+
+@{
+    ViewData["Title"] = "Profile";
+}
+
+<section class="profile-page" data-dashboard>
+    <header class="profile-hero lp-reveal">
+        <div class="profile-identity">
+            <div class="feed-avatar feed-avatar--large">@Model.UserInitial</div>
+            <div>
+                <p class="lp-kicker">Traveler profile</p>
+                <h1>@Model.FullName</h1>
+                <p>@Model.Email</p>
+            </div>
+        </div>
+        <div class="profile-hero__actions">
+            <a class="sg-btn sg-btn--outline sg-btn--sm" asp-controller="Dashboard" asp-action="Index">Back to feed</a>
+            <a class="sg-btn sg-btn--primary sg-btn--sm" asp-controller="Booking" asp-action="Survey">Update preferences</a>
+        </div>
+    </header>
+
+    <div class="profile-grid">
+        <main class="profile-main">
+            <section class="profile-panel profile-panel--preferences lp-reveal">
+                <div class="profile-section-head">
+                    <div>
+                        <p class="lp-kicker">Saved from survey</p>
+                        <h2>Spot preferences</h2>
+                    </div>
+                    @if (Model.Preferences is not null)
+                    {
+                        <span>Updated @Model.Preferences.UpdatedAt.ToLocalTime().ToString("MMM d, yyyy")</span>
+                    }
+                </div>
+
+                @if (Model.Preferences is null)
+                {
+                    <p class="profile-empty">No survey preferences yet. Complete the survey so SugboGo can personalize the profile.</p>
+                }
+                else
+                {
+                    <div class="profile-preference-grid">
+                        <div>
+                            <span>Places</span>
+                            <div class="profile-chip-list">
+                                @foreach (var place in Model.PlacePreferenceLabels)
+                                {
+                                    <span>@place</span>
+                                }
+                            </div>
+                        </div>
+                        <div>
+                            <span>Activities</span>
+                            <div class="profile-chip-list">
+                                @foreach (var activity in Model.ActivityPreferenceLabels)
+                                {
+                                    <span>@activity</span>
+                                }
+                            </div>
+                        </div>
+                        <div>
+                            <span>Travel style</span>
+                            <strong>@Model.Preferences.TravelPace pace</strong>
+                            <p>@Model.Preferences.BudgetRange budget, adventure level @Model.Preferences.AdventureLevel/5</p>
+                        </div>
+                        <div>
+                            <span>Curator notes</span>
+                            <p>@(string.IsNullOrWhiteSpace(Model.Preferences.Notes) ? "No notes added yet." : Model.Preferences.Notes)</p>
+                        </div>
+                    </div>
+                }
+            </section>
+
+            <section class="profile-panel lp-reveal">
+                <div class="profile-section-head">
+                    <div>
+                        <p class="lp-kicker">Current booking</p>
+                        <h2>Trip details</h2>
+                    </div>
+                </div>
+
+                @if (Model.CurrentBooking is null)
+                {
+                    <p class="profile-empty">No active or upcoming booking is linked to your account yet.</p>
+                }
+                else
+                {
+                    <article class="profile-current-booking">
+                        <img src="@Model.CurrentBooking.ImageUrl" alt="@Model.CurrentBooking.DestinationName" />
+                        <div>
+                            <span class="profile-status">@Model.CurrentBooking.Status</span>
+                            <h3>@Model.CurrentBooking.DestinationName</h3>
+                            <p>@Model.CurrentBooking.Location</p>
+                            <dl class="profile-detail-list">
+                                <div><dt>Date</dt><dd>@Model.CurrentBooking.TravelDate</dd></div>
+                                <div><dt>Travelers</dt><dd>@Model.CurrentBooking.TravelerSummary</dd></div>
+                                <div><dt>Stay</dt><dd>@Model.CurrentBooking.Accommodation</dd></div>
+                                <div><dt>Transport</dt><dd>@Model.CurrentBooking.Transportation</dd></div>
+                                <div><dt>Selection</dt><dd>@Model.CurrentBooking.SelectionType</dd></div>
+                                <div><dt>Payment</dt><dd>@Model.CurrentBooking.PaymentMethod</dd></div>
+                                <div><dt>Total</dt><dd>PHP @Model.CurrentBooking.TotalPrice.ToString("N0")</dd></div>
+                                <div><dt>Sugbo key</dt><dd>@Model.CurrentBooking.QrCode</dd></div>
+                            </dl>
+                            @if (Model.CurrentBooking.Activities.Any())
+                            {
+                                <div class="profile-chip-list">
+                                    @foreach (var activity in Model.CurrentBooking.Activities)
+                                    {
+                                        <span>@activity</span>
+                                    }
+                                </div>
+                            }
+                            @if (!string.IsNullOrWhiteSpace(Model.CurrentBooking.Notes))
+                            {
+                                <p>@Model.CurrentBooking.Notes</p>
+                            }
+                        </div>
+                    </article>
+                }
+            </section>
+
+            <section class="profile-panel lp-reveal">
+                <div class="profile-section-head">
+                    <div>
+                        <p class="lp-kicker">History</p>
+                        <h2>Previous bookings</h2>
+                    </div>
+                </div>
+
+                @if (!Model.PreviousBookings.Any())
+                {
+                    <p class="profile-empty">Past bookings and cancelled trips will appear here after your next completed itinerary.</p>
+                }
+                else
+                {
+                    <div class="profile-history-list">
+                        @foreach (var booking in Model.PreviousBookings)
+                        {
+                            <article>
+                                <div>
+                                    <strong>@booking.DestinationName</strong>
+                                    <span>@booking.Location</span>
+                                </div>
+                                <div>
+                                    <span>@booking.TravelDate</span>
+                                    <span>@booking.Status</span>
+                                    <span>PHP @booking.TotalPrice.ToString("N0")</span>
+                                </div>
+                            </article>
+                        }
+                    </div>
+                }
+            </section>
+        </main>
+
+        <aside class="profile-side">
+            <section class="profile-panel lp-reveal">
+                <h2>Saved destinations</h2>
+                @if (Model.SavedDestinations.Any())
+                {
+                    <ul class="feed-saved-list">
+                        @foreach (var gem in Model.SavedDestinations)
+                        {
+                            <li>
+                                <div>
+                                    <strong>@gem.Title</strong>
+                                    <span>@gem.Note</span>
+                                </div>
+                            </li>
+                        }
+                    </ul>
+                }
+                else
+                {
+                    <p class="profile-empty">Saved destinations from AI picks will show here.</p>
+                }
+            </section>
+
+            <section class="profile-panel lp-reveal">
+                <h2>Recommendations</h2>
+                @if (Model.Recommendations.Any())
+                {
+                    <div class="profile-recommendation-list">
+                        @foreach (var spot in Model.Recommendations)
+                        {
+                            <article>
+                                <img src="@spot.ImageUrl" alt="@spot.Name" />
+                                <div>
+                                    <span>@spot.MatchScore% match</span>
+                                    <strong>@spot.Name</strong>
+                                    <p>@spot.MatchReason</p>
+                                    <a href="/Booking/Index?spotId=@spot.Id&type=UserSelected">Book from PHP @spot.BasePrice.ToString("N0")</a>
+                                </div>
+                            </article>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <p class="profile-empty">Database recommendations appear after travel spots are available.</p>
+                }
+            </section>
+
+            <section class="profile-panel lp-reveal">
+                <h2>Linked profile content</h2>
+                <ul class="profile-placeholder-list">
+                    @foreach (var item in Model.LinkedContentPlaceholders)
+                    {
+                        <li>
+                            <strong>@item.Title</strong>
+                            <span>@item.Description</span>
+                        </li>
+                    }
+                </ul>
+            </section>
+        </aside>
+    </div>
+</section>

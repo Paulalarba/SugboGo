@@ -1,0 +1,514 @@
+ CEBU CITY 
+1 Cebu Ocean Park 
+2 Sky Adventure Cebu 
+3 Cebu Taoist Temple 
+4 Temple of Leah 
+5 Tops Lookout 
+6 Mountain View Nature Park 
+7 Sirao Garden 
+8 Neri’s Ville 
+9 Strawberry de Cantipla Eco Farm 
+10 Terrazas de Flores 
+11 Basilica Minore del Santo Niño 
+12 Magellan’s Cross 
+13 Fort San Pedro 
+14 Heritage of Cebu Monument 
+15 Yap-San Diego Ancestral House 
+16 Casa Gorordo Museum 
+17 Museo Sugbo 
+18 1730 Jesuit House 
+19 Sugbo Mercado 
+20 The Pyramid (closed)
+21 La Vie Parisienne 
+22 La Vie in the Sky 
+23 Mist Mountain Resort 
+24 Waterfront Hotel 
+25 Top of Cebu  
+26 Lantaw Native Restaurant 
+27 Kabang Falls (Budlaan) 
+28 Himbabawod Falls (Bonbon) 
+29 Busay Lut-od Falls 
+30 Kawa Falls (Toong Pardo) 
+31 Mangasang Falls 
+32 Linut-od Falls 
+33 Kalunasan Falls 
+34 Linaw Falls 
+35 Guining Falls 
+36 Lanipao Falls 
+37 Balisong Falls 
+38 NUSTAR Resort & Casino Cebu 
+39 SM Seaside Sky Park 
+40 Il Corso Lifemalls 
+41 SRP Boardwalk 
+42 Cebu Fun Park 
+43 ICON Cebu 
+44 Agwa 
+45 The Distillery 
+46 The Sentral Cebu 
+47 Trademark Cebu 
+48 Club Hype / Mango Avenue bars 
+ LAPU-LAPU CITY 
+49 Olango Island 
+50 Caohagan Island 
+51 Nalusuan Island 
+52 Pangan-an Island 
+53 Sulpa Islet 
+54 San Vicente Marine Sanctuary 
+55 Mactan Shrine 
+56 Yellow Submarine Dive Center
+57 Pawod Spring 
+58 Shangri-La’s Mactan Resort & Spa 
+59 Crimson Resort and Spa Mactan 
+60 Plantation Bay Resort & Spa 
+61 Dusit Thani Mactan Cebu 
+62 JPark Island Resort & Waterpark 
+63 BE Resort Mactan 
+64 Bluewater Maribago Beach Resort 
+65 Costabella Tropical Beach Hotel 
+66 Tambuli Seaside Resort 
+67 Vista Mar Beach Resort 
+68 Ibiza Beach Club 
+69 Mactan Newtown bars & rooftop lounges 
+70 Scape Skydeck 
+ MANDAUE CITY 
+68 Waterworld Cebu 
+69 Upside Down World 
+70 Westown Lagoon 
+71 St. Joseph the Worker Shrine 
+72 Mandaue Heritage Plaza 
+73 SM JMall 
+74 Oakridge Business Park 
+75 Bai Hotel 
+76 Maayo Hotel 
+77 Mandani Bay waterfront area 
+78 Liv Super Club 
+79 Club Tipsy 
+80 OQtagon by J. Ave 
+81 Apex Club Cebu 
+82 Rue 
+83 Cartel Studio 
+84 Sentral Bar and Lounge 
+85 Onyx Superclub 
+86 Censored 
+ TALISAY CITY 
+88 San Fernando Rey Parish Church 
+89 The Heritage of Cebu Monument-* cebu city
+90 Sr. Sto. Niño Chapel 
+91 Talisay Beach Resorts  
+92 Hidden Valley Mountain Resort  
+93 Bocaue Falls 
+94 Igotan Falls 
+95 Linaw Falls 
+96 Crocolandia 
+97 Talisay Landing 
+ NAGA CITY 
+99 Naga Boardwalk / Coastal Boulevard 
+100 Robinsons Naga 
+101 Enchanted River Local Spring 
+102 Guanzon Beach Resort 
+103 Naga Watersports & Eco Parks 
+104 Busay Falls 
+105 Mt. Naupa 
+ CARCAR CITY 
+107 Carcar Heritage Town  
+108 St. Catherine of Alexandria Church 
+109 Carcar City Plaza 
+110 Lilibeth Antique Houses 
+111 Malingin Falls 
+112 Katuryano Falls 
+113 Mt. Binabag 
+ DANAO CITY 
+115 Danao Adventure Park 
+116 Sabang Beach area 
+117 St. Thomas of Villanova Church 
+118 Danao Port / coastal views 
+119 Danao Beach Resorts 
+120 El Salvador Beach Resort 
+121 Danasan Eco Adventure Park 
+122 Danasan Waterfalls 
+123 Lapad Linaw Falls 
+124 Sacsac Falls 
+125 Sta. Rosa Falls 
+126 Kanabug Falls 
+127 Licos Peak 
+ TOLEDO CITY 
+129 Malubog Falls 
+130 Manguyakuya Falls 
+131 Kalamati Falls 
+132 Lucob Falls 
+133 Biga Pit 
+134 Lake Bensis (Pingganon) 
+135 Tagaytay Hill 
+136 La Vue Cabine 
+137 Labyrinth 
+ ALCANTARA 
+139 Alcantara Sea Paradise 
+140 Bakhaw Mangrove Area 
+141 Coastal viewpoints & snorkeling spots 
+142 Small beach resorts 
+ ALCOY 
+143 Tingko Beach 
+144 Mainit Spring 
+145 Nug-as Forest Trekking Area 
+146 Alcoy Beach Resorts 
+ ALEGRIA 
+147 Cambais Falls 
+148 Cancalanog Falls 
+149 Montpellier Falls 
+150 Dalakit Falls 
+151 Kitara Falls 
+152 Kawa-kawa Falls 
+153 Kawasan Falls (upper access) 
+154 Canlaob River 
+155 Mt. Lanaya 
+156 Alegria Canyoneering 
+157 Beach resorts 
+ ALOGUINSAN 
+158 Hermit’s Cove 
+159 Bojo River Cruise 
+160 Hidden Beach 
+161 Sayaw Falls 
+162 Busay Falls 
+163 Baluarte Park 
+164 Eco-resorts & homestays 
+ ARGAO 
+165 Argao Nature Park 
+166 Balay sa Agta Cave 
+167 Bugasok Falls 
+168 Kainyang Falls 
+169 Calagasan Mini Waterfall 
+170 Mt. Takliad 
+171 Coastal resorts 
+172 Heritage town & plaza 
+ ASTURIAS 
+173 Mount Manunggal (* Balamban- updated)
+174 Green Lagoon Falls 
+175 Basak-Linaw Falls 
+176 Pajo Falls 
+177 Buswang Lake 
+178 Agtugop Spring 
+179 Hot Spring by the Sea 
+180 Bagacawa Hill 
+181 Guinabasan Forest 
+182 Eco mountain resorts 
+ BADIAN 
+183 Kawasan Falls (Canyoneering) 
+184 Basak Falls 
+185 Kansanto Spring 
+186 Lambug Beach 
+187 Badian Island 
+188 Beach resorts 
+ BALAMBAN 
+189 West 35 Eco Mountain Resort 
+190 Buwakan ni Alejandra 
+191 Florentino’s Eco Park 
+192 JVR Island in the Sky 
+193 Baguio de Cebu Eco Park 
+194 Mahanginhangin Falls 
+195 Sigpit Falls 
+196 Nahulgan Falls 
+197 Ambakan Falls 
+198 Sayaw Falls 
+199 Manguyas Falls 
+200 Adventure parks
+*.     Mt. Manunggal  - updated 
+ BANTAYAN ISLAND 
+201 Kota Beach 
+202 Paradise Beach 
+203 Sandira Beach 
+204 Virgin Island - In Sta. Fe updated 
+205 Ogtong Cave 
+206 Hilantagaan Island 
+207 Hilutungan Marine Sanctuary-*cordova updated
+208 Oboob Mangrove Garden 
+209 German Ruins & Cliff Diving 
+210 Skydiving 
+211 Beach resorts & seafood restaurants 
+ BANTAYAN ISLAND GROUP 
+212 Byagayag Island 
+213 Mambacayao Island 
+214 Doong Island 
+215 Hilotongan Island 
+216 Botigues Island 
+217 Panitugan Island 
+218 Lipayran Island 
+219 Panangatan Island 
+220 Sagasa Islands 
+221 Silagon Island 
+222 Moamboc Island 
+223 Yao Island 
+ BARILI 
+224 Mantayupan Falls 
+225 Mantayupan Spring 
+226 Bolocboloc Sulphuric Spring 
+227 AC Fun Fishing 
+228 Coastal resorts 
+229 Fat’s Aquapark Resort Inc. 
+230 Palatdan Viewing Point 
+ BOLJOON 
+231 Boljoon Church 
+232 Kan-amno Falls 
+233 Dayhag Falls 
+234 Tinubdan Falls 
+235 Eli Rock 
+236 Ablayan Peak 
+237 Coastal viewpoints 
+ BORBON 
+238 Silmugi River 
+239 Nelmon’s Banwa 
+240 Coastal villages 
+241 River resorts 
+*.     Master's Dragon Peak- updated
+ BOGO CITY 
+242 Capitancillo Island 
+243 Lapaz Shrine 
+244 Our Lady of Remedios Church 
+245 Tugbungan Eco Park 
+ CAMOTES ISLAND 
+246 Lake Danao 
+247 Bukilat Cave 
+248 Timubo Cave 
+249 Santiago Beach 
+250 Tulang Diot Island 
+251 Buho Rock 
+252 Busay Falls (Tudela) 
+253 Panganuron Falls (Poro) 
+ CARMEN 
+254 Cebu Safari & Adventure Park 
+255 Durano Eco Farm & Spring Resort 
+256 Mangitngit Falls 
+257 Mt. Mago 
+258 Mountain resorts 
+ CATMON 
+259 Tinubdan Falls 
+260 Kantinggo Falls 
+261 Kanggangawan Falls 
+262 Esoy Hot Spring 
+263 Mt. Kapayas 
+ COMPOSTELA 
+264 Cascades Nature Park 
+265 Inland springs 
+266 Mountain resorts 
+ CONSOLACION 
+267 Panas Falls 
+268 Co Jordan Talaba Farm and Fishing 
+269 City Lights Camp and Dine 
+270 Panoypoy Heights 
+271 Nanda Cafe 
+272 Highland Mango Eco Farm 
+273 Divine View 
+ CORDOVA 
+274 10,000 Roses  
+275 Gilutungan Island 
+276 Nalusuan Island 
+277 Mangrove eco-areas 
+278 Solea Mactan Cebu Resort 
+279 Lantaw Native Restaurant 
+280 Parola Seaview 
+281 Hamugaway Tropical Food Park 
+282 BRIC Foodpark 
+283 Cordova Home Village Resort 
+284 ALTA Cebu Resort 
+285 Villa Asela Resort 
+286 Cordova Reef Village Resort 
+287 Bantayan Bay 
+ DAANBANTAYAN 
+288 Malapascua Island 
+289 Carnaza Island 
+290 Kinatarcan Island 
+291 Gato Island 
+292 Nalundan Cliff 
+293 Kandaya Resort 
+294 Golden Sands Resort 
+295 Beach resorts 
+ DALAGUETE 
+296 Osmeña Peak 
+297 Kandungaw Peak 
+298 Casino Peak 
+299 Dingayop Falls 
+300 Dingayop Spring 
+301 Obong Spring 
+302 Mountain resorts 
+ DUMANJUG 
+303 Cambanog Falls 
+304 Pityak Falls 
+305 Bugasok Falls 
+306 Sayaw Falls 
+307 Coastal beaches 
+308 Inland springs
+* Rosalinas & Marie Restaurant (Chocolanay) updated 
+* Empiangs Bisnok
+* Baybay Dumanjug
+* La Trinidad Beach
+* Mt. Sinai 
+ GINATILAN 
+309 Inambakan Falls 
+310 Kampael Falls 
+311 Bugnawan Falls 
+312 Tambayan sa Cang-ara 
+313 Mt. Hambubuyog 
+ LILOAN 
+314 PapaKits Marina & Fishing Lagoon 
+315 River & lagoon attractions 
+316 Coastal resorts 
+317 Lataban Manmade Cave 
+318 Lataban Hills 
+319 Wiggy's Beach 
+320 D'Pond Family Fun Fishing 
+321 Bagacay Point Lighthouse 
+322 Jubay River 
+323 Little Santorini Mountain Resort 
+324 Ibabaw Mountain Resort 
+325 Pangeas Beach Resort 
+326 Apollo's View 
+327 Titay's 
+328 Bigblue Waters Resort, Tayud 
+329 Lanigid Hill, Barangay Mulao 
+330 Malingin Rock 
+331 Bantayan sa Hari 
+332 Senen's Mountain Resort 
+ MADRIDEJOS 
+333 Kota Park 
+334 Maalat Baywalk 
+335 Bantay Baywalk 
+336 Sillon Island 
+337 Virgin Island ( Sta. Fe- updated)
+ MALABUYOC 
+338 Kabutongan Falls 
+339 Montaneza Falls 
+340 Handigan Falls 
+341 Mainit Spring
+* Mainit Hot Spring Resort
+ MEDELLIN 
+342 Funtastic Island 
+343 Bamboo Forest 
+344 Zipline / Tarzan Jump 
+345 Coastal resorts 
+ MINGLANILLA 
+346 Anjo World Theme Park 
+347 Matun-og Falls 
+348 Cuasan Falls 
+349 Duwang-duwang Falls 
+350 Kabugbugan Falls 
+351 Hinagdanan Falls 
+352 Banga-banga Falls 
+353 Kawa Falls 
+354 Liki Falls 
+355 7 White Caves 
+356 Man-made Forest 
+ MOALBOAL 
+357 Pescador Island 
+358 Sardine Run 
+359 Basdaku White Beach 
+360 Turtle snorkeling 
+361 Batadbatad Falls 
+362 Taginis Falls 
+363 Budlot Spring 
+364 Dive resorts 
+ OSLOB 
+365 Whale Shark Watching 
+366 Sumilon Island 
+367 Tumalog Falls 
+368 Liptong Falls 
+369 Manlum Falls 
+370 Cansaloay Falls 
+371 Paragliding 
+372 Cuartel Ruins 
+*.     Monkey Watching- updated
+ PINAMUNGAJAN 
+373 Liki Falls 
+374 Udlom Falls 
+375 Sinungkulan Falls 
+376 Busagak Falls 
+377 Bagakay Falls 
+378 Campalabo Sandbar 
+379 Hidden Valley Wave Pool 
+380 Dao Mini Falls 
+ PORO 
+381 Lake Danao 
+382 Bukilat Cave 
+383 Timubo Cave 
+384 Santiago Beach 
+385 Tulang Diot Island 
+ RONDA 
+386 Lusno Falls 
+387 Lapnis Falls 
+388 Gyrocopter Flying 
+ SAMBOAN 
+389 Aguinid Falls 
+390 Dao Falls 
+391 Binalayan Falls 
+392 Candayvic Falls 
+393 Calasa Falls 
+394 San Miguel Falls 
+395 Balay’g Sawa Falls 
+396 Bandera sa Dungaw 
+397 Jacob’s Ladder 
+ SAN FERNANDO 
+398 Basak Falls 
+399 Bugho Falls 
+400 Bacalla Woods Campsite 
+ SAN FRANCISCO 
+401 Santiago Bay Beach 
+402 Lake Danao 
+403 Beach resorts 
+ SAN REMIGIO 
+404 Maravilla Beach 
+405 Orongan Beach 
+406 Beach resorts 
+407 Sunset coastline 
+ SANTA FE  
+408 Kota Beach 
+409 Sandira Beach 
+410 Paradise Beach 
+411 Resorts & seafood spots 
+*.     Virgin Island-updated
+ SANTANDER 
+412 Pebbles Beach 
+413 Maglukso Falls 
+414 Inadlay Peak 
+415 Diving resorts 
+ SIBONGA 
+416 Simala Shrine 
+417 Monastery of the Holy Eucharist 
+418 Mt. Lanhan 
+419 Sayao Mountain Park 
+420 Raco's Garden Resort  
+ SOGOD 
+421 Binaliw Cold Spring 
+422 Ongon Falls 
+423 Bagatayam Falls 
+424 El Mar Resort & Spa 
+ TABOGON 
+425 Guiwanon Cold Spring 
+426 Caduawan Valley 
+427 Sea Turtle Lagoon 
+428 Salag Hanging Bridge and Mangrove 
+429 Bitoon Gamay 
+430 Bunzie's Cove 
+431 Headless Virgin 
+432 Nipa Beach 
+433 Hayag Pool Resort 
+434 Emmare Beach Resort 
+ TABUELAN 
+435 Maravilla Beach 
+436 Maravilla Public Beach 
+437 Kantakuyan Spring 
+438 Sinungkulan River 
+439 River Cruise 
+440 Uwangan Falls 
+ TUBURAN 
+441 Molobolo Spring 
+442 Blue Hole Spring 
+443 Marmol Cliff 
+444 Monte Alegre River 
+445 Kalangahan Falls 
+446 Pajo Falls 
+447 Atabay Peak 
+ *.    Tuburan 360 -updated
+ TUDELA 
+448 Busay Falls 
+449 Panganuron Falls 
+450 Bukilat Cave 
+451 Villahermosa Mangrove Sanctuary 
+452 Katunggan Nature Trip See less

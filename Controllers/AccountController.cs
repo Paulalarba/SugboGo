@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Mvc;
 using SugboGo.Models;
 using SugboGo.Services.Auth;
+using SugboGo.Services.Travel;
 
 namespace SugboGo.Controllers;
 
@@ -12,17 +13,28 @@ public sealed class AccountController : Controller
     private readonly IUserAccountStore _userStore;
     private readonly IPasswordService _passwordService;
     private readonly IAccountRoleService _accountRoleService;
+    private readonly ITravelPreferenceStore _preferenceStore;
 
-    public AccountController(IUserAccountStore userStore, IPasswordService passwordService, IAccountRoleService accountRoleService)
+    public AccountController(
+        IUserAccountStore userStore,
+        IPasswordService passwordService,
+        IAccountRoleService accountRoleService,
+        ITravelPreferenceStore preferenceStore)
     {
         _userStore = userStore;
         _passwordService = passwordService;
         _accountRoleService = accountRoleService;
+        _preferenceStore = preferenceStore;
     }
 
     [HttpGet]
     public IActionResult Index(string? returnUrl = null)
     {
+        if (User.Identity?.IsAuthenticated == true)
+        {
+            return RedirectAuthenticatedUser(returnUrl);
+        }
+
         ViewData["Title"] = "Sign in or create an account";
         return View(new EmailEntryViewModel { ReturnUrl = returnUrl });
     }
@@ -79,7 +91,7 @@ public sealed class AccountController : Controller
         }
 
         await SignUserInAsync(user);
-        return RedirectAfterAuthentication(user, model.ReturnUrl);
+        return await RedirectAfterAuthenticationAsync(user, model.ReturnUrl, cancellationToken);
     }
 
     [HttpGet]
@@ -133,7 +145,7 @@ public sealed class AccountController : Controller
         }
 
         await SignUserInAsync(user);
-        return RedirectAfterAuthentication(user, model.ReturnUrl);
+        return await RedirectAfterAuthenticationAsync(user, model.ReturnUrl, cancellationToken);
     }
 
     [HttpGet]
@@ -189,7 +201,7 @@ public sealed class AccountController : Controller
         await HttpContext.SignInAsync(
             CookieAuthenticationDefaults.AuthenticationScheme,
             principal,
-            new AuthenticationProperties { IsPersistent = true });
+            new AuthenticationProperties { IsPersistent = false });
     }
 
     private IActionResult RedirectToRoleHome(UserAccount user)
@@ -200,14 +212,36 @@ public sealed class AccountController : Controller
             : RedirectToAction("Index", "Dashboard");
     }
 
-    private IActionResult RedirectAfterAuthentication(UserAccount user, string? returnUrl)
+    private async Task<IActionResult> RedirectAfterAuthenticationAsync(UserAccount user, string? returnUrl, CancellationToken cancellationToken)
     {
+        var role = _accountRoleService.ResolveEffectiveRole(user.Email, user.Role);
+        if (role != AccountRoles.Admin)
+        {
+            var preferences = await _preferenceStore.FindLatestByUserIdAsync(user.Id, cancellationToken);
+            if (preferences is null || preferences.PlaceInterests.Count == 0 || preferences.ActivityInterests.Count == 0)
+            {
+                return RedirectToAction("Survey", "Booking", new { returnUrl });
+            }
+        }
+
         if (!string.IsNullOrWhiteSpace(returnUrl) && Url.IsLocalUrl(returnUrl))
         {
             return LocalRedirect(returnUrl);
         }
 
         return RedirectToRoleHome(user);
+    }
+
+    private IActionResult RedirectAuthenticatedUser(string? returnUrl)
+    {
+        if (!string.IsNullOrWhiteSpace(returnUrl) && Url.IsLocalUrl(returnUrl))
+        {
+            return LocalRedirect(returnUrl);
+        }
+
+        return User.IsInRole(AccountRoles.Admin)
+            ? RedirectToAction("Index", "Admin")
+            : RedirectToAction("Index", "Dashboard");
     }
 
     private static bool RequiresGmailAccount(string? returnUrl)

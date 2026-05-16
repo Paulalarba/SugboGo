@@ -7,7 +7,7 @@
 <section class="auth-page">
     <div class="auth-panel lp-reveal">
         <div class="auth-brand">Sugbo<span>Go</span></div>
-        <h1>Sign in or create an account</h1>
+        <h1>Welcome to SugboGo!</h1>
 
         <form class="auth-form" asp-controller="Account" asp-action="CheckEmail" method="post" data-auth-email-form>
             @Html.AntiForgeryToken()
@@ -15,14 +15,18 @@
             <label asp-for="Email">Email address</label>
             <input asp-for="Email" type="email" placeholder="name@gmail.com" autocomplete="email" autofocus />
             <span class="auth-validation" asp-validation-for="Email"></span>
-            <button class="auth-primary" type="submit">Continue with Gmail</button>
+            <button class="auth-primary" type="submit">Continue</button>
+
         </form>
 
         <div class="auth-divider"><span>Gmail keeps your Cebu plan attached to one traveler profile</span></div>
 
         <div class="auth-socials" aria-label="Social sign in options">
             <button type="button" aria-label="Continue with Google">
-                <span>G</span>
+                <span style="color: #EA4335;">G</span>
+            </button>
+            <button type="button" aria-label="Continue with Facebook">
+                <span style="color: #1877F2;">f</span>
             </button>
         </div>
 

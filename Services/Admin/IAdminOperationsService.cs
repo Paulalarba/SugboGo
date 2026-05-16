@@ -4,5 +4,5 @@ namespace SugboGo.Services.Admin;
 
 public interface IAdminOperationsService
 {
-    AdminDashboardViewModel BuildDashboard();
+    Task<AdminDashboardViewModel> BuildDashboardAsync(CancellationToken cancellationToken = default);
 }

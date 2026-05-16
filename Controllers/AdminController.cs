@@ -15,9 +15,9 @@ public sealed class AdminController : Controller
         _adminOperationsService = adminOperationsService;
     }
 
-    public IActionResult Index()
+    public async Task<IActionResult> Index(CancellationToken cancellationToken)
     {
         ViewData["Title"] = "Admin Dashboard";
-        return View(_adminOperationsService.BuildDashboard());
+        return View(await _adminOperationsService.BuildDashboardAsync(cancellationToken));
     }
 }

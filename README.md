@@ -1,79 +1,74 @@
 # SugboGo
 
-SugboGo is an ASP.NET Core MVC travel web app focused on helping people discover Cebu like a local. The current experience is designed as a polished landing page with supporting exploration pages for tours, hiking, gastronomy, and trending spots around Cebu.
+SugboGo is a comprehensive ASP.NET Core MVC travel platform designed to help users discover and experience Cebu like a local. Beyond a simple landing page, SugboGo offers personalized travel recommendations, booking management, and a dedicated administrator portal.
 
-## What the project is about
+## Key Features
 
-The app presents Cebu as a destination for:
+- **Personalized Exploration:** Discover tours, hiking trails, gastronomy experiences, and trending spots tailored to your preferences.
+- **Travel Preferences Survey:** A dynamic survey that captures your travel style to provide curated recommendations.
+- **Booking System:** Seamlessly plan and manage your adventures across Cebu.
+- **User Dashboard:** A personalized hub to view saved gems, upcoming bookings, and travel history.
+- **Admin Portal:** Comprehensive management interface for administrators to monitor platform activity and manage travel data.
+- **Flexible Data Architecture:** Supports multiple backends (Local JSON, PostgreSQL, and Supabase) through a factory-based service pattern.
+- **Secure Authentication:** Robust cookie-based authentication with role-based access control (Admin/User).
 
-- Local-guided tours and adventures
-- Hiking trails and mountain destinations
-- Food and gastronomy experiences
-- Trending city and island spots
+## Tech Stack
 
-Right now, the main landing page is the most complete part of the project. It includes a hero section, featured tour cards, hiking highlights, food discovery content, and a newsletter call-to-action. The secondary pages are already routed and styled, but currently show simple "coming soon" placeholders:
-
-- `/Explore/Tours`
-- `/Explore/Hiking`
-- `/Explore/Gastronomy`
-- `/Explore/Spots`
-
-The default route opens the Explore homepage:
-
-- `/`
-- `/Explore/Index`
-
-## Tech stack
-
-- ASP.NET Core MVC
-- .NET 10 (`net10.0`)
-- Razor views
-- Custom CSS in `wwwroot/css/sugbogo.css`
+- **Framework:** ASP.NET Core MVC 10.0
+- **Database:** PostgreSQL via Npgsql & Entity Framework Core
+- **Cloud Integration:** Optional Supabase backend support
+- **Authentication:** Custom Cookie-based Auth with PBKDF2 password hashing
+- **Frontend:** Razor Views, Vanilla CSS, and JavaScript
+- **Configuration:** `dotenv.net` for environment variable management
 
 ## Prerequisites
 
-Before running the project, make sure you have:
+- [.NET 10 SDK](https://dotnet.microsoft.com/download)
+- [PostgreSQL](https://www.postgresql.org/) (Optional, but recommended for full features)
 
-- [.NET 10 SDK](https://dotnet.microsoft.com/download) installed
+## Getting Started
 
-## How to run
+### 1. Configuration
 
-From the project root, run:
+The application uses `appsettings.json` and a `.env` file for configuration.
+
+- Create a `.env` file in the root directory (refer to `.env.example` if available, or add your `DefaultConnection`).
+- Configure your PostgreSQL connection string in `appsettings.json` or `.env`:
+  ```json
+  "ConnectionStrings": {
+    "DefaultConnection": "Host=localhost;Database=SugboGo;Username=postgres;Password=yourpassword"
+  }
+  ```
+
+### 2. Database Setup
+
+Migrations are automatically applied on startup if a valid connection string is provided. The system also seeds initial travel spot data automatically.
+
+### 3. Running the App
+
+From the project root:
 
 ```powershell
 dotnet restore
 dotnet run
 ```
 
-Then open one of the local URLs from `Properties/launchSettings.json`:
-
+Access the application at:
 - `http://localhost:5115`
 - `https://localhost:7225`
 
-If you prefer, you can also run the project directly from Visual Studio using the `http` or `https` launch profile.
+## Project Structure
+
+- `Controllers/`: Application logic for Explore, Booking, Admin, and Account management.
+- `Models/`: Data structures and ViewModels.
+- `Services/`: Business logic layer, including Auth, Travel, Booking, and Admin services.
+- `Data/`: EF Core DbContext, Migrations, and Seeding logic.
+- `Views/`: UI templates using Razor syntax.
+- `App_Data/`: Local storage for JSON data files and Data Protection keys.
+- `wwwroot/`: Static assets (CSS, Images, JS, Libs).
 
 ## Notes
 
-- The app uses `ExploreController` as the default entry point instead of `HomeController`.
-- During verification, package restore completed successfully, but a later build was blocked because the compiled DLL in `obj/Debug/net10.0/` was locked by another running `.NET Host` process. If that happens locally, stop the running app and build or run again.
-- Restore currently reports low-severity NuGet vulnerability warnings for `NuGet.Packaging` and `NuGet.Protocol`, which come from the existing project dependency graph.
-
-## Project structure
-
-```text
-SugboGo/
-|-- Controllers/
-|   |-- ExploreController.cs
-|   `-- HomeController.cs
-|-- Views/
-|   |-- Explore/
-|   `-- Shared/
-|-- wwwroot/
-|   |-- css/
-|   |-- images/
-|   `-- js/
-|-- Properties/
-|   `-- launchSettings.json
-|-- Program.cs
-`-- SugboGo.csproj
-```
+- **Default Route:** The app launches to the `Home/Index` landing page.
+- **Storage Strategy:** The application defaults to a specific storage backend (JSON or Postgres) based on configuration. This is managed by service factories in `Program.cs`.
+- **Admin Access:** Administrator roles are determined by email addresses configured in `appsettings.json` under `Authentication:AdminEmails`.

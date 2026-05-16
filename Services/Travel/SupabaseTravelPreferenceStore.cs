@@ -24,6 +24,16 @@ public sealed class SupabaseTravelPreferenceStore : ITravelPreferenceStore
         _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", _options.ServiceRoleKey);
     }
 
+    public async Task<List<TravelPreferenceRecord>> GetAllAsync(CancellationToken cancellationToken = default)
+    {
+        using var response = await _httpClient.GetAsync($"{_options.PreferencesTable}?select=*&order=updated_at.desc", cancellationToken);
+        response.EnsureSuccessStatusCode();
+
+        await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
+        var rows = await JsonSerializer.DeserializeAsync<List<SupabasePreferenceRow>>(stream, _jsonOptions, cancellationToken) ?? [];
+        return rows.Select(row => row.ToRecord(_jsonOptions)).ToList();
+    }
+
     public async Task<TravelPreferenceRecord?> FindLatestByUserIdAsync(string userId, CancellationToken cancellationToken = default)
     {
         var encodedUserId = Uri.EscapeDataString(userId);
@@ -66,6 +76,12 @@ public sealed class SupabaseTravelPreferenceStore : ITravelPreferenceStore
         [JsonPropertyName("interests_json")]
         public string InterestsJson { get; set; } = "[]";
 
+        [JsonPropertyName("place_interests_json")]
+        public string PlaceInterestsJson { get; set; } = "[]";
+
+        [JsonPropertyName("activity_interests_json")]
+        public string ActivityInterestsJson { get; set; } = "[]";
+
         [JsonPropertyName("adventure_level")]
         public int AdventureLevel { get; set; }
 
@@ -92,6 +108,8 @@ public sealed class SupabaseTravelPreferenceStore : ITravelPreferenceStore
                 UserId = record.UserId,
                 Email = record.Email,
                 InterestsJson = JsonSerializer.Serialize(record.Interests, jsonOptions),
+                PlaceInterestsJson = JsonSerializer.Serialize(record.PlaceInterests, jsonOptions),
+                ActivityInterestsJson = JsonSerializer.Serialize(record.ActivityInterests, jsonOptions),
                 AdventureLevel = record.AdventureLevel,
                 TravelPace = record.TravelPace,
                 BudgetRange = record.BudgetRange,
@@ -103,12 +121,17 @@ public sealed class SupabaseTravelPreferenceStore : ITravelPreferenceStore
 
         public TravelPreferenceRecord ToRecord(JsonSerializerOptions jsonOptions)
         {
+            var legacyInterests = JsonSerializer.Deserialize<List<string>>(InterestsJson, jsonOptions) ?? [];
+            var placeInterests = JsonSerializer.Deserialize<List<string>>(PlaceInterestsJson, jsonOptions) ?? [];
+            var activityInterests = JsonSerializer.Deserialize<List<string>>(ActivityInterestsJson, jsonOptions) ?? [];
+
             return new TravelPreferenceRecord
             {
                 Id = Id,
                 UserId = UserId,
                 Email = Email,
-                Interests = JsonSerializer.Deserialize<List<string>>(InterestsJson, jsonOptions) ?? [],
+                PlaceInterests = placeInterests.Count == 0 ? legacyInterests : placeInterests,
+                ActivityInterests = activityInterests,
                 AdventureLevel = AdventureLevel,
                 TravelPace = TravelPace,
                 BudgetRange = BudgetRange,

@@ -5,5 +5,6 @@ namespace SugboGo.Services.Dashboard;
 
 public interface IDashboardExperienceService
 {
-    DashboardViewModel BuildForUser(ClaimsPrincipal user);
+    Task<DashboardViewModel> BuildForUserAsync(ClaimsPrincipal user, CancellationToken cancellationToken = default);
+    Task<UserProfilePageViewModel> BuildProfileForUserAsync(ClaimsPrincipal user, CancellationToken cancellationToken = default);
 }

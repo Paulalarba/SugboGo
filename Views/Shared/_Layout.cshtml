@@ -16,7 +16,7 @@
     <link rel="stylesheet" href="~/css/sugbogo.css" asp-append-version="true" />
 </head>
 
-<body>
+<body data-authenticated="@User.Identity?.IsAuthenticated.ToString().ToLowerInvariant()">
     <!-- ================================================== -->
     <!-- SG-NAV: Modern navbar from sugbogo.css              -->
     <!-- ================================================== -->
@@ -28,21 +28,22 @@
             {
                 <nav class="sg-nav__links">
                     <a href="/Admin">Admin Dashboard</a>
-                    <a href="/Admin/Users">Manage Users</a>
-                    <a href="/Admin/Bookings">All Bookings</a>
+                    <a href="/Admin#travelers">Manage Users</a>
+                    <a href="/Admin#bookings">All Bookings</a>
                 </nav>
             }
             else if (User.Identity?.IsAuthenticated == true)
             {
                 <nav class="sg-nav__links">
-                    <a href="/Dashboard">Dashboard</a>
                     <a href="/Booking/Start">Booking</a>
-                    <a href="/Profile">Profile</a>
+                    <a href="/Dashboard">Dashboard</a>
+                    <a href="/Dashboard/Profile">Profile</a>
                 </nav>
             }
             else
             {
                 <nav class="sg-nav__links">
+                    <a href="/">Dashboard</a>
                     <a href="/Booking/Start">Booking</a>
                     <a href="/#experiences">Experiences</a>
                     <div class="sg-nav__dropdown">
@@ -66,7 +67,7 @@
                 }
                 else
                 {
-                    <a class="sg-btn sg-btn--outline sg-btn--sm" href="/Account">Sign in</a>
+                    <a class="sg-btn sg-btn--outline sg-btn--sm" href="/Account">Login</a>
                     <a class="sg-btn sg-btn--primary sg-btn--sm" href="/Booking/Start">Book now</a>
                 }
             </div>

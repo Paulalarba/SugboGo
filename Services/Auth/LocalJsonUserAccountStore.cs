@@ -14,6 +14,21 @@ public sealed class LocalJsonUserAccountStore : IUserAccountStore
         _filePath = Path.Combine(environment.ContentRootPath, "App_Data", "auth-users.json");
     }
 
+    public async Task<List<UserAccount>> GetAllAsync(CancellationToken cancellationToken = default)
+    {
+        await FileLock.WaitAsync(cancellationToken);
+        try
+        {
+            var users = await ReadUsersAsync(cancellationToken);
+            users.ForEach(user => user.Role = AccountRoles.Normalize(user.Role));
+            return users.OrderByDescending(user => user.CreatedAt).ToList();
+        }
+        finally
+        {
+            FileLock.Release();
+        }
+    }
+
     public async Task<UserAccount?> FindByEmailAsync(string email, CancellationToken cancellationToken = default)
     {
         var normalizedEmail = NormalizeEmail(email);

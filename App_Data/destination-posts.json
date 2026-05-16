@@ -1,0 +1,40 @@
+[
+  {
+    "id": "c02bbfdb23fe412ab6a0edb985930fc0",
+    "userId": "1aec83e4d6174470815f071d92662530",
+    "authorName": "Paul Alarba",
+    "authorEmail": "paulnicoralarba13@gmail.com",
+    "destinationName": "Bantayan cebu",
+    "location": "Santafe",
+    "description": "This is a test",
+    "caption": "Test Post",
+    "tag": "nightlife",
+    "imageFileName": "0b4fdcc6ea974439af72ae8e146fd14d.png",
+    "likes": 18,
+    "comments": 3,
+    "commentsList": [
+      {
+        "id": "36463a0f128747c2b2d31916a83b7cca",
+        "userId": "1aec83e4d6174470815f071d92662530",
+        "authorName": "Paul Alarba",
+        "text": "test",
+        "createdAt": "2026-05-07T18:09:55.1898678+00:00"
+      },
+      {
+        "id": "e78c0c4a85804db3ab45f362d271acfb",
+        "userId": "1aec83e4d6174470815f071d92662530",
+        "authorName": "Paul Alarba",
+        "text": "nice",
+        "createdAt": "2026-05-07T18:14:38.7010537+00:00"
+      },
+      {
+        "id": "7cdfceab5ec84a8b9c6d95c2809b1c01",
+        "userId": "86f0d8785104463081ef322e3d22c915",
+        "authorName": "Paul Alarba",
+        "text": "Joe makita nimo ang mga comment?",
+        "createdAt": "2026-05-07T19:34:13.613218+00:00"
+      }
+    ],
+    "createdAt": "2026-05-07T17:51:36.7994265+00:00"
+  }
+]
