@@ -5,195 +5,53 @@
     var minDate = DateTime.Today.AddDays(1).ToString("yyyy-MM-dd");
     var defaultDate = DateTime.Today.AddDays(7).ToString("yyyy-MM-dd");
     var profileSummary = Model.Preferences is null
-        ? "Preference profile pending"
+        ? "Traveler profile pending. Complete the preference survey for sharper recommendations."
         : $"{Model.Preferences.BudgetRange}, {Model.Preferences.TravelPace} pace, adventure {Model.Preferences.AdventureLevel}/5";
-    var returnUrl = Context.Request.Path + Context.Request.QueryString;
-    var basePerPerson = Model.Data.BasePrice;
 }
 
-<style>
-    /* ── Booking flow — per-person pricing & UI elements ── */
-
-    .bk-pricing-note {
-        margin-top: 12px;
-        padding: 10px 14px;
-        border-radius: 6px;
-        background: color-mix(in oklch, var(--lp-teal), oklch(0.998 0.006 94) 90%);
-        color: var(--lp-blue);
-        font-size: 0.88rem;
-        font-weight: 700;
-    }
-
-    .bk-section-hint {
-        margin: 0 0 14px;
-        color: var(--lp-muted);
-        font-size: 0.88rem;
-        line-height: 1.5;
-    }
-
-    .bk-discount-row {
-        color: #16a34a;
-        font-weight: 700;
-    }
-
-    .bk-per-person-note {
-        margin: -8px 0 0;
-        color: var(--lp-muted);
-        font-size: 0.84rem;
-        font-style: italic;
-    }
-
-    .bk-pay-total-recap {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        margin-top: 20px;
-        padding: 14px 18px;
-        border: 1px solid var(--lp-line);
-        border-radius: 8px;
-        background: color-mix(in oklch, var(--lp-blue), oklch(0.998 0.006 94) 92%);
-    }
-
-        .bk-pay-total-recap span {
-            color: var(--lp-muted);
-            font-size: 0.88rem;
-            font-weight: 600;
-        }
-
-        .bk-pay-total-recap strong {
-            color: var(--lp-blue);
-            font-family: var(--lp-font-head);
-            font-size: 1.4rem;
-            font-weight: 800;
-        }
-
-    .bk-trust-badges {
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-        margin-top: 20px;
-        padding-top: 20px;
-        border-top: 1px solid var(--lp-line);
-    }
-
-        .bk-trust-badges span {
-            font-size: 0.86rem;
-            color: var(--lp-muted);
-        }
-
-    .checkout-panel--minimal dl .total-row dt,
-    .checkout-panel--minimal dl .total-row dd {
-        font-family: var(--lp-font-head);
-        font-size: 1.1rem;
-        font-weight: 800;
-        color: var(--lp-ink);
-        border-top: 1px solid var(--lp-line);
-        padding-top: 12px;
-        margin-top: 4px;
-    }
-
-    .review-per-person {
-        grid-column: 1 / -1;
-        padding: 10px 16px;
-        border-radius: 6px;
-        background: color-mix(in oklch, var(--lp-teal), oklch(0.998 0.006 94) 90%);
-        color: var(--lp-blue);
-        font-size: 0.88rem;
-        font-weight: 700;
-    }
-
-    .digital-pass__body {
-        display: grid;
-        gap: 8px;
-        padding: 18px;
-    }
-
-    .booking-choice b sub {
-        font-size: 0.72rem;
-        font-family: var(--font-body);
-        color: var(--lp-muted);
-        font-weight: 400;
-        vertical-align: baseline;
-        margin-left: 1px;
-    }
-</style>
-
-<section class="booking-flow booking-flow--minimal" data-booking-wizard
-         data-destination-id="@Model.Data.DestinationId"
-         data-booking-type="@Model.BookingType"
-         data-destination="@Model.Data.DestinationName"
-         data-base-price="@Model.Data.BasePrice"
-         data-image-url="@Model.Data.ImageUrl"
-         data-location="@Model.Data.Location">
-
+<section class="booking-flow" data-booking-wizard data-destination-id="@Model.Data.DestinationId" data-booking-type="@Model.BookingType" data-destination="@Model.Data.DestinationName" data-base-price="@Model.Data.BasePrice" data-image-url="@Model.Data.ImageUrl" data-location="@Model.Data.Location">
     @Html.AntiForgeryToken()
 
-    <div class="booking-shell booking-shell--minimal">
+    <div class="booking-shell">
+        <header class="booking-hero lp-reveal">
+            <div class="booking-hero__grid">
+                <div>
+                    @if (Model.BookingType == "SystemSelected")
+                    {
+                        <p class="lp-kicker">AI-Curated Experience ✨</p>
+                        <p class="sg-caption sg-mb-xs">Based on your profile: @profileSummary</p>
+                    }
+                    else
+                    {
+                        <p class="lp-kicker">Secure Flashpacker Experience</p>
+                    }
+                    <h1>@Model.Data.DestinationName</h1>
+                    <p>@Model.Data.Description</p>
 
-        @if (TempData["BookingMessage"] is string message)
-        {
-            <div class="booking-notice">✓ @message</div>
-        }
-
-        <header class="booking-hero booking-hero--minimal lp-reveal">
-            <img class="booking-hero__image" src="@Model.Data.ImageUrl" alt="@Model.Data.DestinationName" />
-            <div class="booking-hero__content">
-                <nav class="booking-breadcrumb" aria-label="Breadcrumb">
-                    <a asp-controller="Explore" asp-action="Index">Explore</a>
-                    <span>/</span>
-                    <span>@Model.Data.DestinationName</span>
-                </nav>
-
-                <p class="lp-kicker">@(Model.BookingType == "SystemSelected" ? "✦ AI-selected for you" : "Selected Cebu spot")</p>
-                <h1>@Model.Data.DestinationName</h1>
-                <p>@Model.Data.Description</p>
-
-                <div class="booking-meta-row" aria-label="Quick details">
-                    <span>📍 @Model.Data.Location</span>
-                    <span>⏱ @Model.Data.Duration</span>
-                    <span>⭐ @Model.Data.RatingSummary</span>
-                    <span>🗓 @Model.Data.BestTimeToVisit</span>
+                    <div class="bundle-switcher">
+                        <a href="/Booking/ResolveAiDestination" class="bundle-btn @(Model.BookingType == "SystemSelected" ? "is-active" : "")">
+                            <strong>System-Selected</strong>
+                            <small>AI-curated recommendations</small>
+                        </a>
+                        <a href="#user-selected-modal" class="bundle-btn @(Model.BookingType == "UserSelected" ? "is-active" : "")" data-modal-open>
+                            <strong>User-Selected</strong>
+                            <small>Manual destination pick</small>
+                        </a>
+                    </div>
                 </div>
-
-                <div class="booking-hero__actions">
-                    <a class="booking-primary booking-primary--inline" href="#bookingOptions">Reserve Now →</a>
-                    <form asp-controller="Booking" asp-action="SaveFavorite" method="post">
-                        @Html.AntiForgeryToken()
-                        <input type="hidden" name="destinationId" value="@Model.Data.DestinationId" />
-                        <input type="hidden" name="title" value="@Model.Data.DestinationName" />
-                        <input type="hidden" name="category" value="@Model.BookingType" />
-                        <input type="hidden" name="neighborhood" value="@Model.Data.Location" />
-                        <input type="hidden" name="returnUrl" value="@returnUrl" />
-                        <button class="booking-link-btn booking-link-btn--inline" type="submit">♡ Save</button>
-                    </form>
-                    <a class="booking-link-btn booking-link-btn--inline" asp-controller="Explore" asp-action="Index">← Explore</a>
-                </div>
+                <aside class="booking-summary" aria-label="Destination overview">
+                    <span>@Model.Data.RatingSummary</span>
+                    <strong>PHP @Model.Data.BasePrice.ToString("N0")</strong>
+                    <small>@Model.Data.Location · @Model.Data.Duration</small>
+                    <small>Best time: @Model.Data.BestTimeToVisit</small>
+                </aside>
             </div>
         </header>
-
-        <section class="booking-detail-strip lp-reveal" aria-label="Booking overview">
-            <article>
-                <span>Starting from</span>
-                <strong>₱@Model.Data.BasePrice.ToString("N0") / person</strong>
-            </article>
-            <article>
-                <span>Best time to visit</span>
-                <strong>@Model.Data.BestTimeToVisit</strong>
-            </article>
-            <article>
-                <span>Your travel profile</span>
-                <strong>@profileSummary</strong>
-            </article>
-            <article>
-                <span>Booking type</span>
-                <strong>@(Model.BookingType == "SystemSelected" ? "✦ AI-matched" : "Your selection")</strong>
-            </article>
-        </section>
 
         <div id="user-selected-modal" class="booking-modal" hidden>
             <div class="booking-modal__content">
                 <header>
-                    <h3>Switch destination</h3>
+                    <h3>Choose your next adventure</h3>
                     <button type="button" data-modal-close>&times;</button>
                 </header>
                 <div class="destination-grid">
@@ -214,54 +72,42 @@
             </div>
         </div>
 
-        <nav class="booking-progress booking-progress--minimal lp-reveal" aria-label="Booking steps">
-            <span class="is-active" data-step-indicator="config">1 · Details</span>
-            <span data-step-indicator="review">2 · Review</span>
-            <span data-step-indicator="payment">3 · Payment</span>
-            <span data-step-indicator="success">4 · Pass</span>
+        <nav class="booking-progress lp-reveal" aria-label="Booking progress">
+            <span class="is-active" data-step-indicator="config">1. Customize</span>
+            <span data-step-indicator="review">2. Review</span>
+            <span data-step-indicator="payment">3. Payment</span>
+            <span data-step-indicator="success">4. Get Pass</span>
         </nav>
 
-        <!-- ══ STEP 1: Config ══════════════════════════════════════════════ -->
-
-        <section class="booking-stage is-active" data-booking-step="config" id="bookingOptions">
-            <div class="journey-layout journey-layout--minimal">
-
-                <main class="journey-timeline journey-timeline--minimal" aria-label="Configure your trip">
-
-                    <article class="journey-item journey-item--minimal" data-timeline-step="date">
+        <section class="booking-stage is-active" data-booking-step="config">
+            <div class="journey-layout">
+                <main class="journey-timeline" aria-label="Booking options">
+                    <article class="journey-item" data-timeline-step="date">
+                        <div class="journey-item__pin"><span>1</span></div>
                         <div class="journey-item__body">
-                            <div class="journey-item__topline">
-                                <span>Trip basics</span>
-                                <strong>Required</strong>
-                            </div>
+                            <div class="journey-item__topline"><span>When are you going?</span><strong>Weather-synced</strong></div>
                             <div class="booking-form-grid">
                                 <label>
                                     <span>Travel date</span>
                                     <input type="date" name="travelDate" value="@defaultDate" min="@minDate" required />
                                 </label>
                                 <label>
-                                    <span>Group size</span>
-                                    <select name="travelerType" id="travelerTypeSelect">
-                                        <option value="Solo" data-count="1" data-discount="0">Solo (1 person)</option>
-                                        <option value="Couple" data-count="2" data-discount="5">Couple (2 persons · 5% off each)</option>
-                                        <option value="Group" data-count="4" data-discount="12">Group (4 persons · 12% off each)</option>
-                                        <option value="Family" data-count="4" data-discount="12">Family (4 persons · 12% off each)</option>
+                                    <span>Who's joining?</span>
+                                    <select name="travelerType">
+                                        <option value="Solo" data-count="1">Solo Flashpacker</option>
+                                        <option value="Couple" data-count="2">Dynamic Duo</option>
+                                        <option value="Group" data-count="4">Experience Group</option>
+                                        <option value="Family" data-count="4">Modern Family</option>
                                     </select>
                                 </label>
-                            </div>
-                            <div class="bk-pricing-note lp-reveal" id="pricingNote">
-                                <span id="pricingNoteText">₱@Model.Data.BasePrice.ToString("N0") × 1 person</span>
                             </div>
                         </div>
                     </article>
 
-                    <article class="journey-item journey-item--minimal" data-timeline-step="activities">
+                    <article class="journey-item" data-timeline-step="activities">
+                        <div class="journey-item__pin"><span>2</span></div>
                         <div class="journey-item__body">
-                            <div class="journey-item__topline">
-                                <span>Activities</span>
-                                <strong>Optional</strong>
-                            </div>
-                            <p class="bk-section-hint">Add-on prices shown are <em>per person</em> and scale with your group size.</p>
+                            <div class="journey-item__topline"><span>Experience-driven activities</span><strong>Curated for you</strong></div>
                             <div class="booking-option-list">
                                 @foreach (var activity in Model.ActivityOptions)
                                 {
@@ -271,505 +117,174 @@
                                             <strong>@activity.Name</strong>
                                             <small>@activity.Description</small>
                                         </span>
-                                        <b>+₱@activity.Price.ToString("N0")<sub>/pax</sub></b>
+                                        <b>+PHP @activity.Price.ToString("N0")</b>
                                     </label>
                                 }
                             </div>
                         </div>
                     </article>
 
-                    <article class="journey-item journey-item--minimal" data-timeline-step="stay">
+                    <article class="journey-item" data-timeline-step="stay">
+                        <div class="journey-item__pin"><span>3</span></div>
                         <div class="journey-item__body">
-                            <div class="journey-item__topline">
-                                <span>Stay</span>
-                                <strong>Choose one</strong>
-                            </div>
-                            <p class="bk-section-hint">Accommodation is a flat add-on <em>per booking</em>, not per person.</p>
+                            <div class="journey-item__topline"><span>Flashpacker Stays</span><strong>Budget meets Comfort</strong></div>
                             <div class="booking-option-list booking-option-list--media">
                                 @foreach (var stay in Model.AccommodationOptions)
                                 {
                                     <label class="booking-choice booking-choice--media">
-                                        <input type="radio" name="accommodation" value="@stay.Name"
-                                               data-price="@stay.PricePerNight"
-                                               data-price-mode="flat"
-                                        @(stay.PricePerNight == 0 ? "checked" : null) />
+                                        <input type="radio" name="accommodation" value="@stay.Name" data-price="@stay.PricePerNight" @(stay.PricePerNight == 0 ? "checked" : null) />
                                         <img src="@stay.ImageUrl" alt="@stay.Name" />
                                         <span>
                                             <strong>@stay.Name</strong>
                                             <small>@stay.Type · @stay.Amenities</small>
-                                            <small>⭐ @stay.Rating · @stay.Distance</small>
                                         </span>
-                                        <b>@(stay.PricePerNight == 0 ? "Included" : $"+₱{stay.PricePerNight:N0}")</b>
+                                        <b>@(stay.PricePerNight == 0 ? "Included" : $"+PHP {stay.PricePerNight:N0}")</b>
                                     </label>
                                 }
                             </div>
                         </div>
                     </article>
 
-                    <article class="journey-item journey-item--minimal" data-timeline-step="transport">
+                    <article class="journey-item" data-timeline-step="transport">
+                        <div class="journey-item__pin"><span>4</span></div>
                         <div class="journey-item__body">
-                            <div class="journey-item__topline">
-                                <span>Transport</span>
-                                <strong>Choose one</strong>
-                            </div>
-                            <p class="bk-section-hint">Transport costs are shared across your group (flat rate per booking).</p>
+                            <div class="journey-item__topline"><span>Flexible Transport</span><strong>Efficiency first</strong></div>
                             <div class="booking-option-list">
                                 @foreach (var transport in Model.TransportOptions)
                                 {
                                     <label class="booking-choice">
-                                        <input type="radio" name="transportation" value="@transport.Name"
-                                               data-price="@transport.Price"
-                                               data-price-mode="flat"
-                                        @(transport.Price == 0 ? "checked" : null) />
+                                        <input type="radio" name="transportation" value="@transport.Name" data-price="@transport.Price" @(transport.Price == 0 ? "checked" : null) />
                                         <span>
                                             <strong>@transport.Name</strong>
                                             <small>@transport.Details</small>
                                         </span>
-                                        <b>@(transport.Price == 0 ? "Included" : $"+₱{transport.Price:N0}")</b>
+                                        <b>@(transport.Price == 0 ? "Included" : $"+PHP {transport.Price:N0}")</b>
                                     </label>
                                 }
                             </div>
                         </div>
                     </article>
 
-                    <article class="journey-item journey-item--minimal" data-timeline-step="notes">
+                    <article class="journey-item" data-timeline-step="notes">
+                        <div class="journey-item__pin"><span>5</span></div>
                         <div class="journey-item__body">
-                            <div class="journey-item__topline">
-                                <span>Special requests</span>
-                                <strong>Optional</strong>
-                            </div>
+                            <div class="journey-item__topline"><span>Final details</span><strong>Anything else?</strong></div>
                             <label class="booking-notes">
-                                <textarea name="travelerNotes" rows="3"
-                                          placeholder="Dietary needs, accessibility requests, preferred start time, or anything else we should know…"></textarea>
+                                <textarea name="travelerNotes" rows="3" placeholder="Dietary needs, special occasions, or transport preferences..."></textarea>
                             </label>
-                            <div class="journey-item__actions" style="margin-top:18px;">
-                                <span></span>
-                                <button type="button" class="booking-primary booking-primary--inline" data-goto-step="review">
-                                    Review Booking →
-                                </button>
+                            <div class="journey-item__actions">
+                                <button type="button" class="booking-primary" data-goto-step="review">Review Trip Summary</button>
                             </div>
                         </div>
                     </article>
-
                 </main>
 
-                <aside class="checkout-panel checkout-panel--minimal lp-reveal" aria-label="Price summary">
-                    <h2>Price breakdown</h2>
+                <aside class="checkout-panel lp-reveal">
+                    <h2>Live Estimate</h2>
                     <dl>
-                        <div>
-                            <dt>Base trip</dt>
-                            <dd>₱<span data-base-display>@Model.Data.BasePrice.ToString("N0")</span></dd>
-                        </div>
-                        <div>
-                            <dt>Group discount</dt>
-                            <dd class="bk-discount-row" data-discount-row>—</dd>
-                        </div>
-                        <div data-add-ons-row hidden>
-                            <dt>Add-ons</dt>
-                            <dd>₱<span data-addons-display>0</span></dd>
-                        </div>
-                        <div>
-                            <dt>VAT (12%)</dt>
-                            <dd>₱<span data-taxes-display>0</span></dd>
-                        </div>
-                        <div class="total-row">
-                            <dt>Total</dt>
-                            <dd>₱<span data-total-display>@Model.Data.BasePrice.ToString("N0")</span></dd>
-                        </div>
+                        <div><dt>Base Trip</dt><dd>PHP <span data-base-display>@Model.Data.BasePrice.ToString("N0")</span></dd></div>
+                        <div data-add-ons-row hidden><dt>Add-ons</dt><dd>PHP <span data-addons-display>0</span></dd></div>
+                        <div><dt>Vat (12%)</dt><dd>PHP <span data-taxes-display>0</span></dd></div>
+                        <div class="total-row"><dt>Total</dt><dd>PHP <span data-total-display>@Model.Data.BasePrice.ToString("N0")</span></dd></div>
                     </dl>
-
-                    <p class="bk-per-person-note" id="perPersonNote">≈ ₱<span data-per-person-display>@Model.Data.BasePrice.ToString("N0")</span> per person</p>
-
                     <div class="smart-rec-box">
-                        <p>💡 @(Model.SmartRecommendations.FirstOrDefault() ?? "Booking with a group? You get an automatic discount.")</p>
+                        <p><strong>Flashpacker Tip:</strong> @Model.SmartRecommendations.FirstOrDefault()</p>
                     </div>
-
-                    <button type="button" class="booking-primary" data-goto-step="review">Reserve Now →</button>
-                    <button type="button" class="booking-link-btn" style="width:100%;margin-top:10px;text-align:center;" onclick="document.getElementById('user-selected-modal').removeAttribute('hidden')">
-                        Switch destination
-                    </button>
                 </aside>
-
             </div>
         </section>
-
-        <!-- ══ STEP 2: Review ══════════════════════════════════════════════ -->
 
         <section class="booking-stage" data-booking-step="review">
-            <div class="journey-layout journey-layout--minimal">
-
+            <div class="journey-layout">
                 <main class="flash-checkout__form">
-                    <h2>Review your booking</h2>
-                    <p style="color:var(--lp-muted);margin:0 0 22px;">Confirm everything looks right before heading to payment.</p>
+                    <h2>Trip Summary</h2>
                     <div class="review-summary" data-review-summary></div>
-                    <div class="journey-item__actions" style="margin-top:22px;">
-                        <button type="button" class="booking-link-btn booking-link-btn--inline" data-goto-step="config">← Edit Details</button>
-                        <button type="button" class="booking-primary booking-primary--inline" data-goto-step="payment">Continue to Payment →</button>
+                    <div class="journey-item__actions">
+                        <button type="button" class="booking-link-btn" data-goto-step="config">Edit Details</button>
+                        <button type="button" class="booking-primary" data-goto-step="payment">Secure Payment</button>
                     </div>
                 </main>
-
-                <aside class="checkout-panel checkout-panel--minimal">
-                    <h2>Location</h2>
+                <aside class="checkout-panel">
+                    <h2>Route Explorer</h2>
                     <div class="booking-map">
-                        <iframe title="@Model.Data.DestinationName location"
-                                src="@Model.Data.MapUrl"
-                                loading="lazy"
-                                referrerpolicy="no-referrer-when-downgrade"></iframe>
+                        <iframe title="@Model.Data.DestinationName map" src="@Model.Data.MapUrl" loading="lazy"></iframe>
                     </div>
-                    <p style="margin-top:14px;font-size:0.88rem;color:var(--lp-muted);">📍 @Model.Data.Location</p>
+                    <p class="small text-muted">Your itinerary is synced to our local guides instantly upon confirmation.</p>
                 </aside>
-
             </div>
         </section>
-
-        <!-- ══ STEP 3: Payment ════════════════════════════════════════════ -->
 
         <section class="booking-stage" data-booking-step="payment">
-            <div class="flash-checkout flash-checkout--minimal">
-
+            <div class="flash-checkout">
                 <main class="flash-checkout__form">
-                    <h2>Complete payment</h2>
-                    <p style="color:var(--lp-muted);margin:0 0 22px;">Choose your preferred payment method. All transactions are secure.</p>
-
-                    <p style="font-size:0.82rem;font-weight:700;color:var(--lp-muted);letter-spacing:0.06em;text-transform:uppercase;margin-bottom:10px;">Pay with</p>
+                    <h2>Digital Payment</h2>
+                    <p class="text-muted">Choose your preferred tech-savvy payment method.</p>
                     <div class="quick-pay">
-                        <button type="button" data-pay-method="GCash" aria-label="Pay with GCash"><span>GCash</span></button>
-                        <button type="button" data-pay-method="Maya" aria-label="Pay with Maya"><span>Maya</span></button>
-                        <button type="button" data-pay-method="Card" aria-label="Pay with card"><span>Card</span></button>
-                        <button type="button" data-pay-method="PayPal" aria-label="Pay with PayPal"><span>PayPal</span></button>
-                    </div>
-
-                    <div class="bk-pay-total-recap" id="payTotalRecap">
-                        <span>Total due</span>
-                        <strong>₱<span data-pay-total-echo>0</span></strong>
-                    </div>
-
-                    <div class="journey-item__actions" style="margin-top:22px;">
-                        <button type="button" class="booking-link-btn booking-link-btn--inline" data-goto-step="review">← Back</button>
-                        <button type="button" class="booking-primary booking-primary--inline" id="btn-submit-booking">
-                            Confirm &amp; Pay →
+                        <button type="button" data-pay-method="GCash">
+                            <i class="payment-icon">G</i>
+                            <span>GCash</span>
+                        </button>
+                        <button type="button" data-pay-method="Maya">
+                            <i class="payment-icon">M</i>
+                            <span>Maya</span>
+                        </button>
+                        <button type="button" data-pay-method="Card">
+                            <i class="payment-icon">C</i>
+                            <span>Card</span>
+                        </button>
+                        <button type="button" data-pay-method="PayPal">
+                            <i class="payment-icon">P</i>
+                            <span>PayPal</span>
                         </button>
                     </div>
-
+                    <div class="journey-item__actions" style="margin-top: 2rem;">
+                        <button type="button" class="booking-link-btn" data-goto-step="review">Back</button>
+                        <button type="button" class="booking-primary" id="btn-submit-booking">Complete Booking</button>
+                    </div>
+                    <div class="booking-divider"><span>Encrypted Transaction</span></div>
                     <div class="payment-sim" data-payment-sim hidden>
                         <div class="spinner"></div>
-                        <p>Locking in your Cebu adventure…</p>
+                        <p>Securing your Cebu adventure...</p>
                     </div>
                 </main>
-
                 <aside class="payment-recap">
-                    <h2>What's included</h2>
+                    <h2>Flashpacker Protection</h2>
                     <ul class="check-list">
-                        <li>Instant digital pass & QR code</li>
-                        <li>Booking saved to your profile</li>
-                        <li>Local guide coordination</li>
-                        <li>24/7 SugboGo traveler support</li>
-                        <li>Free cancellation up to 48h before</li>
+                        <li>Instant QR Pass generation</li>
+                        <li>24/7 Digital support access</li>
+                        <li>Flexible rescheduling coordination</li>
                     </ul>
-                    <div class="bk-trust-badges">
-                        <span>🔒 Secure checkout</span>
-                        <span>✅ Verified local partners</span>
-                        <span>🌴 Cebu-based team</span>
-                    </div>
                 </aside>
-
             </div>
         </section>
 
-        <!-- ══ STEP 4: Success ════════════════════════════════════════════ -->
-
         <section class="booking-stage" data-booking-step="success">
-            <div class="success-state success-state--minimal">
-
-                <header class="success-state__header" style="padding:clamp(28px,4vw,48px);">
-                    <p class="lp-kicker">🎉 Booking confirmed</p>
-                    <h2>You're going to Cebu!</h2>
-                    <p style="color:var(--lp-muted);margin:12px 0 0;max-width:54ch;">
-                        Your adventure at <strong>@Model.Data.DestinationName</strong> is locked in.
-                        Show your digital pass at the meeting point.
-                    </p>
+            <div class="success-state">
+                <header class="success-state__header">
+                    <p class="lp-kicker">Success!</p>
+                    <h2>Pack your bags, @(User.Identity?.Name?.Split(' ')[0] ?? "Traveler").</h2>
                 </header>
-
-                <div class="digital-pass" style="margin:0 clamp(20px,4vw,48px) clamp(20px,4vw,48px);">
+                
+                <div class="digital-pass">
                     <div class="digital-pass__header">
-                        <span>Digital Pass · SugboGo</span>
+                        <span>Digital Pass</span>
                         <strong>SUGBOGO</strong>
                     </div>
                     <div class="digital-pass__body">
-                        <div class="review-item"><strong>Booking ID</strong><span data-conf-id>—</span></div>
+                        <div class="review-item"><strong>ID</strong><span data-conf-id>---</span></div>
                         <div class="review-item"><strong>Destination</strong><span>@Model.Data.DestinationName</span></div>
-                        <div class="review-item"><strong>Location</strong><span>@Model.Data.Location</span></div>
-                        <div class="review-item"><strong>Travel date</strong><span data-pass-date>—</span></div>
-                        <div class="review-item"><strong>Travelers</strong><span data-pass-travelers>—</span></div>
-                        <div class="review-item"><strong>Amount paid</strong><span data-pass-total>—</span></div>
-                        <div class="review-item"><strong>Status</strong><span style="color:#16a34a;font-weight:700;">✓ Confirmed</span></div>
+                        <div class="review-item"><strong>Status</strong><span class="text-success">Confirmed</span></div>
                     </div>
                     <div class="digital-pass__footer">
                         <div class="qr-preview" data-qr-code-placeholder></div>
-                        <p style="font-size:0.78rem;color:var(--lp-muted);margin:12px 0 0;">Present this pass to your local guide on the day of your trip.</p>
+                        <p class="small text-muted mt-2">Scan at destination for instant check-in</p>
                     </div>
                 </div>
 
-                <div style="padding:0 clamp(20px,4vw,48px) clamp(28px,4vw,48px);display:flex;gap:12px;flex-wrap:wrap;">
-                    <a href="/Dashboard/Profile" class="booking-primary booking-primary--inline">View all my trips →</a>
-                    <a href="/Explore" class="booking-link-btn booking-link-btn--inline">Explore more destinations</a>
+                <div class="journey-item__actions">
+                    <a href="/Dashboard" class="booking-primary">View Trip in Dashboard</a>
                 </div>
-
             </div>
         </section>
-
     </div>
 </section>
-
-@section Scripts {
-    <script>
-        (function () {
-            'use strict';
-
-            const DISCOUNT_BY_TYPE = { Solo: 0, Couple: 0.05, Group: 0.12, Family: 0.12 };
-            const COUNT_BY_TYPE    = { Solo: 1, Couple: 2,    Group: 4,    Family: 4 };
-
-            function formatPeso(n) {
-                return Math.round(n).toLocaleString('en-PH');
-            }
-
-            function escHtml(str) {
-                return String(str)
-                    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
-                    .replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');
-            }
-
-            document.addEventListener('DOMContentLoaded', () => {
-                const wizard = document.querySelector('[data-booking-wizard]');
-                if (!wizard) return;
-
-                const basePrice     = Number(wizard.dataset.basePrice || '0');
-                const typeSelect    = wizard.querySelector('select[name="travelerType"]');
-                const pricingNote   = document.getElementById('pricingNoteText');
-                const perPersonNote = document.getElementById('perPersonNote')?.querySelector('[data-per-person-display]');
-                const discountRow   = wizard.querySelector('[data-discount-row]');
-                const baseDisplay   = wizard.querySelector('[data-base-display]');
-                const addonsDisplay = wizard.querySelector('[data-addons-display]');
-                const addonsRow     = wizard.querySelector('[data-add-ons-row]');
-                const taxesDisplay  = wizard.querySelector('[data-taxes-display]');
-                const totalDisplay  = wizard.querySelector('[data-total-display]');
-                const payTotalEcho  = document.getElementById('payTotalRecap')?.querySelector('[data-pay-total-echo]');
-                const passDate      = wizard.querySelector('[data-pass-date]');
-                const passTravelers = wizard.querySelector('[data-pass-travelers]');
-                const passTotal     = wizard.querySelector('[data-pass-total]');
-                const confId        = wizard.querySelector('[data-conf-id]');
-
-                let selectedPayMethod = 'Card';
-                wizard.querySelectorAll('[data-pay-method]').forEach(btn => {
-                    btn.addEventListener('click', () => {
-                        wizard.querySelectorAll('[data-pay-method]').forEach(b => b.classList.remove('is-active'));
-                        btn.classList.add('is-active');
-                        selectedPayMethod = btn.dataset.payMethod;
-                    });
-                });
-
-                function getCurrentGroup() {
-                    const type = typeSelect?.value || 'Solo';
-                    return {
-                        type,
-                        count:    COUNT_BY_TYPE[type]    ?? 1,
-                        discount: DISCOUNT_BY_TYPE[type] ?? 0
-                    };
-                }
-
-                function recalc() {
-                    const { type, count, discount } = getCurrentGroup();
-
-                    const discountedPerPerson = basePrice * (1 - discount);
-                    const baseTotal           = discountedPerPerson * count;
-
-                    let activityAddons = 0;
-                    wizard.querySelectorAll('input[name="activities"]:checked').forEach(cb => {
-                        activityAddons += Number(cb.dataset.price || 0) * count;
-                    });
-
-                    const selectedAcc   = wizard.querySelector('input[name="accommodation"]:checked');
-                    const selectedTrans = wizard.querySelector('input[name="transportation"]:checked');
-                    const flatAddons    = Number(selectedAcc?.dataset.price   || 0) +
-                                          Number(selectedTrans?.dataset.price || 0);
-
-                    const totalAddons = activityAddons + flatAddons;
-                    const taxes       = Math.round((baseTotal + totalAddons) * 0.12);
-                    const grandTotal  = baseTotal + totalAddons + taxes;
-                    const perPerson   = count > 0 ? Math.round(grandTotal / count) : grandTotal;
-
-                    if (baseDisplay)   baseDisplay.textContent   = formatPeso(baseTotal);
-                    if (addonsDisplay) addonsDisplay.textContent = formatPeso(totalAddons);
-                    if (taxesDisplay)  taxesDisplay.textContent  = formatPeso(taxes);
-                    if (totalDisplay)  totalDisplay.textContent  = formatPeso(grandTotal);
-                    if (addonsRow)     addonsRow.hidden           = (totalAddons === 0);
-                    if (payTotalEcho)  payTotalEcho.textContent  = formatPeso(grandTotal);
-                    if (perPersonNote) perPersonNote.textContent = formatPeso(perPerson);
-
-                    if (discountRow) {
-                        if (discount > 0) {
-                            const saved = Math.round(basePrice * discount * count);
-                            discountRow.textContent = `−₱${formatPeso(saved)} (${(discount * 100).toFixed(0)}% group)`;
-                            discountRow.style.color = '#16a34a';
-                        } else {
-                            discountRow.textContent = '—';
-                            discountRow.style.color = '';
-                        }
-                    }
-
-                    if (pricingNote) {
-                        if (discount > 0) {
-                            pricingNote.textContent =
-                                `₱${formatPeso(discountedPerPerson)} × ${count} persons (${(discount*100).toFixed(0)}% group discount applied)`;
-                        } else {
-                            pricingNote.textContent = `₱${formatPeso(basePrice)} × ${count} person${count > 1 ? 's' : ''}`;
-                        }
-                    }
-
-                    wizard._pricing = { grandTotal, baseTotal, totalAddons, taxes, count };
-                }
-
-                function renderReview() {
-                    const container = wizard.querySelector('[data-review-summary]');
-                    if (!container) return;
-
-                    const { type, count, discount } = getCurrentGroup();
-                    const travelDate = wizard.querySelector('input[name="travelDate"]')?.value || '';
-                    const notes      = wizard.querySelector('textarea[name="travelerNotes"]')?.value || '';
-                    const accVal     = wizard.querySelector('input[name="accommodation"]:checked')?.value || 'Not selected';
-                    const transVal   = wizard.querySelector('input[name="transportation"]:checked')?.value || 'Not selected';
-                    const actVals    = [...wizard.querySelectorAll('input[name="activities"]:checked')].map(c => c.value).join(', ') || 'None';
-
-                    const perPersonDiv = discount > 0
-                        ? `<div class="review-per-person">
-                               Group discount of ${(discount*100).toFixed(0)}% applied —
-                               you save ₱${formatPeso(basePrice * discount * count)} on the base trip.
-                           </div>`
-                        : '';
-
-                    container.innerHTML = `
-                        <div class="review-grid">
-                            <div class="review-item"><strong>Destination</strong><span>${escHtml(wizard.dataset.destination || '')}</span></div>
-                            <div class="review-item"><strong>Travel date</strong><span>${escHtml(travelDate)}</span></div>
-                            <div class="review-item"><strong>Group</strong><span>${escHtml(type)} · ${count} person${count>1?'s':''}</span></div>
-                            <div class="review-item"><strong>Stay</strong><span>${escHtml(accVal)}</span></div>
-                            <div class="review-item"><strong>Transport</strong><span>${escHtml(transVal)}</span></div>
-                            <div class="review-item"><strong>Activities</strong><span>${escHtml(actVals)}</span></div>
-                            <div class="review-item"><strong>Special requests</strong><span>${escHtml(notes || 'None')}</span></div>
-                            ${perPersonDiv}
-                            <div class="review-total" style="grid-column:1/-1;">
-                                <strong>Total: ₱${totalDisplay?.textContent || '0'}</strong>
-                                <span style="font-size:0.88rem;color:var(--lp-muted);">
-                                    ≈ ₱${perPersonNote?.textContent || '?'} / person · VAT included
-                                </span>
-                            </div>
-                        </div>`;
-
-                    if (passDate)      passDate.textContent      = travelDate;
-                    if (passTravelers) passTravelers.textContent = `${type} · ${count} person${count>1?'s':''}`;
-                    if (passTotal)     passTotal.textContent     = `₱${totalDisplay?.textContent || '0'}`;
-                }
-
-                // Step navigation
-                wizard.querySelectorAll('[data-goto-step]').forEach(btn => {
-                    btn.addEventListener('click', () => {
-                        const target = btn.dataset.gotoStep;
-                        if (target === 'review')  setTimeout(renderReview, 60);
-                        if (target === 'payment' && payTotalEcho && totalDisplay) {
-                            payTotalEcho.textContent = totalDisplay.textContent;
-                        }
-                    });
-                });
-
-                // Modal close
-                wizard.querySelectorAll('[data-modal-close]').forEach(btn => {
-                    btn.addEventListener('click', () => {
-                        document.getElementById('user-selected-modal')?.setAttribute('hidden', '');
-                    });
-                });
-
-                // Re-calc on any input change
-                wizard.querySelectorAll('input, select').forEach(el => {
-                    el.addEventListener('change', recalc);
-                });
-
-                // ── Submit booking ────────────────────────────────────────────────
-                document.getElementById('btn-submit-booking')?.addEventListener('click', async () => {
-                    const { type, count } = getCurrentGroup();
-                    const pricing    = wizard._pricing ?? {};
-                    const travelDate = wizard.querySelector('input[name="travelDate"]')?.value;
-                    const accVal     = wizard.querySelector('input[name="accommodation"]:checked')?.value ?? '';
-                    const transVal   = wizard.querySelector('input[name="transportation"]:checked')?.value ?? '';
-                    const actVals    = [...wizard.querySelectorAll('input[name="activities"]:checked')].map(c => c.value);
-                    const notes      = wizard.querySelector('textarea[name="travelerNotes"]')?.value ?? '';
-                    const token      = document.querySelector('input[name="__RequestVerificationToken"]')?.value ?? '';
-
-                    const payload = {
-                        destinationId:          wizard.dataset.destinationId,
-                        bookingType:            wizard.dataset.bookingType,
-                        destinationName:        wizard.dataset.destination,
-                        imageUrl:               wizard.dataset.imageUrl,
-                        location:               wizard.dataset.location,
-                        basePrice:              Number(wizard.dataset.basePrice),
-                        travelDate:             travelDate,
-                        travelerType:           type,
-                        travelerCount:          count,
-                        selectedActivities:     actVals,
-                        selectedAccommodation:  accVal,
-                        selectedTransportation: transVal,
-                        paymentMethod:          selectedPayMethod,
-                        travelerNotes:          notes,
-                        addOnsPrice:            pricing.totalAddons ?? 0,
-                        taxesAndFees:           pricing.taxes       ?? 0,
-                        totalPrice:             pricing.grandTotal  ?? 0
-                    };
-
-                    const paymentSim = wizard.querySelector('[data-payment-sim]');
-                    const submitBtn  = document.getElementById('btn-submit-booking');
-                    if (paymentSim) paymentSim.removeAttribute('hidden');
-                    if (submitBtn)  submitBtn.disabled = true;
-
-                    try {
-                        const res = await fetch('/Booking/ConfirmBooking', {
-                            method:  'POST',
-                            headers: {
-                                'Content-Type':            'application/json',
-                                'RequestVerificationToken': token
-                            },
-                            body: JSON.stringify(payload)
-                        });
-
-                        const data = await res.json();
-
-                        if (data.success) {
-                            if (confId) confId.textContent = `#${data.bookingId}`;
-
-                            const qrBox = wizard.querySelector('[data-qr-code-placeholder]');
-                            if (qrBox && data.qrCode) {
-                                qrBox.innerHTML = `<img src="${escHtml(data.qrCode)}" alt="QR Code" style="width:120px;height:120px;" />`;
-                            } else if (qrBox) {
-                                qrBox.innerHTML = `<div style="width:120px;height:120px;background:#e5e7eb;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:0.75rem;color:#6b7280;">QR Code</div>`;
-                            }
-
-                            wizard.querySelectorAll('.booking-stage').forEach(s => s.classList.remove('is-active'));
-                            wizard.querySelector('[data-booking-step="success"]')?.classList.add('is-active');
-                            wizard.querySelectorAll('[data-step-indicator]').forEach(s => s.classList.remove('is-active'));
-                            wizard.querySelector('[data-step-indicator="success"]')?.classList.add('is-active');
-                            window.scrollTo({ top: 0, behavior: 'smooth' });
-                        } else {
-                            alert(data.message || 'Booking failed. Please try again.');
-                        }
-                    } catch (err) {
-                        console.error('Booking submit error:', err);
-                        alert('Something went wrong. Please check your connection and try again.');
-                    } finally {
-                        if (paymentSim) paymentSim.setAttribute('hidden', '');
-                        if (submitBtn)  submitBtn.disabled = false;
-                    }
-                });
-
-                recalc();
-            });
-        }());
-    </script>
-}

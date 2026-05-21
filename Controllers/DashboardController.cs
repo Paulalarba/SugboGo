@@ -36,12 +36,6 @@ public sealed class DashboardController : Controller
         return View("~/Views/User/Dashboard/Index.cshtml", await _dashboardExperienceService.BuildForUserAsync(User, cancellationToken));
     }
 
-    public async Task<IActionResult> Profile(CancellationToken cancellationToken)
-    {
-        ViewData["Title"] = "Profile";
-        return View("~/Views/User/Dashboard/Profile.cshtml", await _dashboardExperienceService.BuildProfileForUserAsync(User, cancellationToken));
-    }
-
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> SaveGem(string title, string category, string neighborhood, CancellationToken cancellationToken)

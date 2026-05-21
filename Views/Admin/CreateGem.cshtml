@@ -1,0 +1,152 @@
+﻿@model SugboGo.Models.TravelSpot
+@{
+    Layout = "_AdminLayout";
+}
+
+<style>
+    .form-container {
+        background: white;
+        border: 1px solid var(--admin-border);
+        border-radius: 12px;
+        padding: 32px;
+        max-width: 680px;
+        box-shadow: 0 4px 14px rgba(29, 42, 38, 0.03);
+    }
+    .form-group {
+        margin-bottom: 24px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+    .form-label {
+        font-size: 0.85rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: var(--admin-text-main);
+    }
+    .form-input {
+        background: var(--admin-bg);
+        border: 1px solid var(--admin-border);
+        padding: 12px 16px;
+        border-radius: 8px;
+        font-family: 'DM Sans', sans-serif;
+        font-size: 0.95rem;
+        color: var(--admin-text-main);
+        outline: none;
+        transition: 0.2s;
+    }
+    .form-input:focus {
+        border-color: var(--admin-accent);
+        background: white;
+    }
+    .form-actions-row {
+        display: flex;
+        gap: 16px;
+        margin-top: 32px;
+        border-top: 1px solid var(--admin-border);
+        padding-top: 24px;
+    }
+    .btn-form {
+        padding: 12px 24px;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 0.9rem;
+        cursor: pointer;
+        font-family: 'DM Sans', sans-serif;
+        transition: 0.2s;
+    }
+    .btn-form--save { background: var(--admin-accent); color: white; border: none; }
+    .btn-form--save:hover { opacity: 0.9; }
+    
+    .btn-form--cancel { 
+        background: transparent; 
+        border: 1px solid var(--admin-border); 
+        color: var(--admin-text-muted); 
+        text-decoration: none; 
+        display: inline-flex; 
+        align-items: center; 
+        justify-content: center; 
+    }
+    .btn-form--cancel:hover { background: var(--admin-surface); color: var(--admin-text-main); }
+    
+    .text-danger-validation {
+        font-size: 0.8rem;
+        color: var(--admin-danger);
+        font-weight: 500;
+    }
+</style>
+
+<div style="margin-bottom: 32px;">
+    <h1 style="margin: 0; font-family: 'Cormorant Garamond', serif; font-size: 2.2rem; font-weight: 700;">Add New Hidden Gem</h1>
+    <p style="margin: 4px 0 0 0; color: var(--admin-text-muted);">Expand the curated repository map with an authentic local travel spot entry.</p>
+</div>
+
+<div class="form-container">
+    <form asp-controller="Admin" asp-action="CreateGem" method="post">
+        @Html.AntiForgeryToken()
+
+        <div class="form-group">
+            <label class="form-label" asp-for="Name">Destination Title Name</label>
+            <input type="text" asp-for="Name" class="form-input" placeholder="e.g., Bojo River Eco-Tour" required />
+            <span asp-validation-for="Name" class="text-danger-validation"></span>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label" asp-for="Category">Exploration Category Tag</label>
+            <select asp-for="Category" class="form-input" required>
+                <option value="">Select travel style...</option>
+                <option value="Beaches">Beaches & Coves</option>
+                <option value="Waterfalls">Waterfalls & Treks</option>
+                <option value="Heritage">Heritage & Culture</option>
+                <option value="Culinary">Culinary & Local Flavors</option>
+            </select>
+            <span asp-validation-for="Category" class="text-danger-validation"></span>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+            <div class="form-group">
+                <label class="form-label" asp-for="Location">Specific Location</label>
+                <input type="text" asp-for="Location" class="form-input" placeholder="e.g., Aloguinsan, Cebu" required />
+                <span asp-validation-for="Location" class="text-danger-validation"></span>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" asp-for="Region">Cebu Region Division</label>
+                <select asp-for="Region" class="form-input" required>
+                    <option value="">Select Region...</option>
+                    <option value="North Cebu">North Cebu</option>
+                    <option value="South Cebu">South Cebu</option>
+                    <option value="Metro Cebu">Metro Cebu</option>
+                    <option value="Midwest Cebu">Midwest Cebu</option>
+                </select>
+                <span asp-validation-for="Region" class="text-danger-validation"></span>
+            </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+            <div class="form-group">
+                <label class="form-label" asp-for="BasePrice">Base Price (PHP)</label>
+                <input type="number" asp-for="BasePrice" class="form-input" value="2500" required />
+                <span asp-validation-for="BasePrice" class="text-danger-validation"></span>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" asp-for="AdventureLevel">Adventure Intensity Level (1-5)</label>
+                <input type="number" min="1" max="5" asp-for="AdventureLevel" class="form-input" value="3" required />
+                <span asp-validation-for="AdventureLevel" class="text-danger-validation"></span>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label" asp-for="Description">Curator Spot Description</label>
+            <textarea asp-for="Description" rows="4" class="form-input" placeholder="Describe tracking details, vendor contact references, or beauty highlights..." style="resize: vertical;" required></textarea>
+            <span asp-validation-for="Description" class="text-danger-validation"></span>
+        </div>
+
+        <div class="form-actions-row">
+            <button type="submit" class="btn-form btn-form--save">Publish Travel Spot</button>
+            <a asp-controller="Admin" asp-action="Gems" class="btn-form btn-form--cancel">Cancel</a>
+        </div>
+    </form>
+</div>

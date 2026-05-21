@@ -145,11 +145,11 @@ namespace SugboGo.Data.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<string>("SelectionType")
+                    b.Property<string>("Status")
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<string>("Status")
+                    b.Property<string>("SelectionType")
                         .IsRequired()
                         .HasColumnType("text");
 

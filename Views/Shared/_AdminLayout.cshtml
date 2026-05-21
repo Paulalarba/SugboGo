@@ -1,139 +1,436 @@
-﻿<!DOCTYPE html>
-<html lang="en">
-<head>
+﻿<!DOCTYPE html><html lang="en"><head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>SugboGo Admin | @ViewData["Title"]</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
     <link rel="stylesheet" href="~/css/sugbogo.css" asp-append-version="true" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" />
+    
     <style>
         :root {
-            --admin-bg: #0d1117;
-            --admin-surface: #161b22;
-            --admin-border: #30363d;
-            --admin-text: #c9d1d9;
-            --admin-accent: #58a6ff;
-            --admin-success: #238636;
-            --admin-warning: #d29922;
-            --admin-danger: #da3633;
+            --admin-bg: #F0EDE1;         /* Deeper warm biscuit cream background */
+            --admin-surface: #E6E1D2;    /* Slightly darker toasted-sand for sidebars/cards */
+            --admin-border: #D1C9B7;     /* Stronger, defined warm mud-khaki borders */
+            --admin-text-main: #1E2824;  /* Deep off-black charcoal with a hint of forest green */
+            --admin-text-muted: #5C6661; /* Clear slate-sage for labels and secondary text */
+            --admin-accent: #0A443A;     /* Rich, sophisticated deep pine/emerald green */
+            --admin-accent-light: #DCD7C5;/* Darker warm-sand tint for active tabs/hovers */
+            
+            /* Status Pillars optimized for readability on richer cream surfaces */
+            --admin-success: #144527;
+            --admin-warning: #87550B;
+            --admin-danger: #822222;
         }
 
         body.admin-portal {
             background: var(--admin-bg);
-            color: var(--admin-text);
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+            color: var(--admin-text-main);
+            font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
             margin: 0;
             display: flex;
             min-height: 100vh;
         }
 
+        /* Sidebar Containers */
         .admin-sidebar {
             width: 260px;
             background: var(--admin-surface);
             border-right: 1px solid var(--admin-border);
-            display: flex; flex-direction: column;
-            position: sticky; top: 0; height: 100vh;
+            display: flex; 
+            flex-direction: column;
+            position: sticky; 
+            top: 0; 
+            height: 100vh;
+            box-sizing: border-box;
+            padding: 24px 16px;
         }
 
         .admin-brand {
-            padding: 24px;
-            font-size: 1.5rem; font-weight: 800;
-            color: var(--admin-accent); letter-spacing: -1px;
-            display: flex; align-items: center; gap: 12px;
+            padding: 12px 16px 32px 16px;
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 1.6rem; 
+            font-weight: 700;
+            color: var(--admin-accent);
+            letter-spacing: -0.5px;
+            line-height: 1.1;
+        }
+        .admin-brand span {
+            display: block;
+            font-size: 0.7rem;
+            font-family: 'DM Sans', sans-serif;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: var(--admin-text-muted);
+            margin-top: 4px;
+            font-weight: 600;
         }
 
-        .admin-nav { flex: 1; padding: 12px; }
-        .admin-nav a {
+        .admin-nav { 
+            flex: 1; 
             display: flex;
-            align-items: center; gap: 12px;
-            padding: 12px 16px; color: var(--admin-text);
-            text-decoration: none; border-radius: 6px;
-            margin-bottom: 4px; transition: 0.2s;
+            flex-direction: column;
+            gap: 4px;
         }
-        .admin-nav a:hover, .admin-nav a.is-active {
-            background: rgba(88, 166, 255, 0.1);
+        
+        .admin-nav a, .logout-nav-btn {
+            display: flex;
+            align-items: center; 
+            gap: 14px;
+            padding: 12px 16px; 
+            color: var(--admin-text-muted);
+            text-decoration: none; 
+            border-radius: 8px;
+            font-weight: 500;
+            font-size: 0.95rem;
+            transition: all 0.2s ease;
+            background: transparent;
+            border: none;
+            width: 100%;
+            text-align: left;
+            cursor: pointer;
+            box-sizing: border-box;
+            font-family: 'DM Sans', sans-serif;
+        }
+        
+        .admin-nav a:hover, .logout-nav-btn:hover {
+            background: var(--admin-accent-light);
+            color: var(--admin-accent);
+        }
+        
+        .admin-nav a.is-active {
+            background: var(--admin-accent-light);
+            color: var(--admin-accent);
+            font-weight: 600;
+            border-left: 3px solid var(--admin-accent);
+            border-radius: 0 8px 8px 0;
+            padding-left: 13px;
+        }
+
+        .sidebar-footer {
+            margin-top: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            border-top: 1px solid var(--admin-border);
+            padding-top: 16px;
+        }
+
+        /* Workspace Wrapper */
+        .admin-layout-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Top Action Header Bar */
+        .admin-top-bar {
+            height: 70px;
+            background: var(--admin-bg);
+            border-bottom: 1px solid var(--admin-border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 40px;
+            flex-shrink: 0;
+        }
+
+        .top-bar-title {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 1.4rem;
+            font-weight: 600;
             color: var(--admin-accent);
         }
 
-        .admin-main { flex: 1; padding: 32px; overflow-y: auto; }
-        
-        /* Shared components for all Admin pages */
-        .admin-section {
+        .top-bar-actions {
+            display: flex;
+            align-items: center;
+            gap: 24px;
+        }
+
+        .search-container {
+            position: relative;
+        }
+        .search-container input {
             background: var(--admin-surface);
             border: 1px solid var(--admin-border);
-            border-radius: 8px; margin-bottom: 32px; overflow: hidden;
+            padding: 8px 16px 8px 36px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            width: 240px;
+            color: var(--admin-text-main);
+            outline: none;
+            transition: 0.2s ease;
+        }
+        .search-container input:focus {
+            background: white;
+            border-color: var(--admin-accent);
+            box-shadow: 0 0 0 3px rgba(10, 68, 58, 0.1);
+        }
+        .search-container i {
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--admin-text-muted);
+            font-size: 0.9rem;
+        }
+
+        .icon-bell, .icon-help {
+            color: var(--admin-text-muted);
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+        .icon-bell:hover, .icon-help:hover {
+            color: var(--admin-accent);
+        }
+
+        .top-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 1px solid var(--admin-border);
+            transition: border-color 0.2s;
+        }
+        .top-avatar:hover {
+            border-color: var(--admin-accent);
+        }
+
+        /* Profile Dropdown Component Elements */
+        .profile-dropdown-card {
+            display: none;
+            position: absolute;
+            right: 0;
+            top: 46px;
+            background: white;
+            border: 1px solid var(--admin-border);
+            border-radius: 12px;
+            width: 220px;
+            box-shadow: 0 8px 24px rgba(29, 42, 38, 0.08);
+            z-index: 1000;
+            padding: 12px;
+            box-sizing: border-box;
+        }
+        .profile-dropdown-card.is-open {
+            display: block;
+        }
+        .dropdown-user-info {
+            display: flex;
+            flex-direction: column;
+            padding: 4px 8px 8px 8px;
+        }
+        .dropdown-user-info strong { font-size: 0.9rem; color: var(--admin-text-main); }
+        .dropdown-user-info span { font-size: 0.75rem; color: var(--admin-text-muted); }
+
+        .profile-dropdown-card a, .dropdown-logout-btn {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 8px;
+            color: var(--admin-text-main);
+            text-decoration: none;
+            font-size: 0.85rem;
+            font-weight: 500;
+            border-radius: 6px;
+            width: 100%;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            text-align: left;
+            box-sizing: border-box;
+            font-family: inherit;
+            transition: background 0.2s, color 0.2s;
+        }
+        .profile-dropdown-card a:hover {
+            background: var(--admin-bg);
+            color: var(--admin-accent);
+        }
+        .dropdown-logout-btn:hover {
+            background: #FDF2F2;
+            color: var(--admin-danger);
+        }
+
+        /* Scrollable main content pane */
+        .admin-main { 
+            flex: 1; 
+            padding: 40px; 
+            overflow-y: auto; 
+        }
+
+        /* Sub-Content Text Typography Overrides */
+        .admin-main h1, .admin-main .welcome-title {
+            font-family: 'Cormorant Garamond', serif;
+            color: var(--admin-text-main);
+        }
+        
+        /* Shared components for all Admin data pages */
+        .admin-section {
+            background: white;
+            border: 1px solid var(--admin-border);
+            border-radius: 12px; 
+            margin-bottom: 32px; 
+            overflow: hidden;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.02);
         }
         .section-header {
-            padding: 16px 24px;
+            padding: 20px 24px;
             border-bottom: 1px solid var(--admin-border);
             display: flex; justify-content: space-between; align-items: center;
         }
         .admin-table { width: 100%; border-collapse: collapse; }
         .admin-table th {
-            text-align: left; padding: 12px 24px;
-            background: rgba(255, 255, 255, 0.02);
-            font-size: 0.75rem; text-transform: uppercase; color: #8b949e;
+            text-align: left; padding: 14px 24px;
+            background: #FAFAFA;
+            font-size: 0.75rem; text-transform: uppercase; color: var(--admin-text-muted);
+            letter-spacing: 0.5px;
         }
-        .admin-table td { padding: 16px 24px; border-top: 1px solid var(--admin-border); font-size: 0.9rem; }
+        .admin-table td { padding: 18px 24px; border-top: 1px solid var(--admin-border); font-size: 0.9rem; color: var(--admin-text-main); }
+        
         .status-pill {
             display: inline-flex;
             align-items: center;
-            border-radius: 999px;
-            background: rgba(88, 166, 255, 0.12);
-            color: var(--admin-accent);
+            border-radius: 6px;
             font-size: 0.75rem;
-            font-weight: 700;
+            font-weight: 600;
             padding: 4px 10px;
-            text-transform: capitalize;
         }
         .status--pending, .status--curating, .status--awaiting-approval {
-            background: rgba(210, 153, 34, 0.15);
-            color: var(--admin-warning);
+            background: #FEF7EA; color: var(--admin-warning);
         }
         .status--confirmed, .status--paid, .status--completed {
-            background: rgba(35, 134, 54, 0.15);
-            color: var(--admin-success);
-        }
-        .status--in-progress {
-            background: rgba(88, 166, 255, 0.15);
-            color: var(--admin-accent);
+            background: #EBF5EE; color: var(--admin-success);
         }
         .status--cancelled, .status--failed {
-            background: rgba(218, 54, 51, 0.15);
-            color: var(--admin-danger);
+            background: #FDF2F2; color: var(--admin-danger);
         }
     </style>
-    @await RenderSectionAsync("Styles", required: false)
-</head>
-<body class="admin-portal">
+    @await RenderSectionAsync("Styles", required: false)</head><body class="admin-portal">
+
     <aside class="admin-sidebar">
-        <div class="admin-brand"><span style="font-size: 1.8rem;">🚀</span> SugboGo Admin</div>
+        <div class="admin-brand">
+            SugboGo
+            <span>Admin Portal</span>
+        </div>
+        
         <nav class="admin-nav">
-            <a asp-controller="Admin" asp-action="Index" class="@(ViewContext.RouteData.Values["Action"]?.ToString() == "Index" ? "is-active" : "")">Dashboard</a>
-            <a href="/Admin#bookings">Bookings</a>
-            <a href="/Admin#travelers">Travelers</a>
-            <a href="/Admin#gems">Hidden Gems</a>
-            <a href="/Admin#partners">Partners</a>
- 
-            <div style="margin-top: 32px; padding: 12px 16px; font-size: 0.7rem; color: #8b949e; text-transform: uppercase; letter-spacing: 0.1em;">System</div>
-            <a href="/Admin#system">Settings</a>
-            <a asp-controller="Home" asp-action="Index">Back to Site</a>
+            <a asp-controller="Admin" asp-action="Index" class="@(ViewContext.RouteData.Values["Action"]?.ToString() == "Index" ? "is-active" : "")">
+                <i class="bi bi-grid"></i> Dashboard
+            </a>
+            <a asp-controller="Admin" asp-action="Bookings" class="@(ViewContext.RouteData.Values["Action"]?.ToString() == "Bookings" ? "is-active" : "")">
+                <i class="bi bi-ticket-perforated"></i> Bookings
+            </a>
+            <a asp-controller="Admin" asp-action="Travelers" class="@(ViewContext.RouteData.Values["Action"]?.ToString() == "Travelers" ? "is-active" : "")">
+                <i class="bi bi-people"></i> Travelers
+            </a>
+            <a asp-controller="Admin" asp-action="Gems" class="@(ViewContext.RouteData.Values["Action"]?.ToString() == "Gems" ? "is-active" : "")">
+                <i class="bi bi-compass"></i> Hidden Gems
+            </a>
+            <a asp-controller="Admin" asp-action="Partners" class="@(ViewContext.RouteData.Values["Action"]?.ToString() == "Partners" ? "is-active" : "")">
+                <i class="bi bi-briefcase"></i> Partners
+            </a>
         </nav>
-        <div style="padding: 24px; border-top: 1px solid var(--admin-border);">
-            <div style="display: flex; align-items: center; gap: 12px;">
-                <div style="width: 32px; height: 32px; background: var(--admin-accent); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; color: white;">A</div>
-                <div>
-                    <div style="font-size: 0.85rem; font-weight: 600;">@User.Identity?.Name</div>
-                    <div style="font-size: 0.7rem; color: #8b949e;">Master Curator</div>
-                </div>
-            </div>
+
+        <div class="sidebar-footer">
+            <a href="/Admin#system">
+                <i class="bi bi-gear" style="padding-left:15px;"></i> Settings
+            </a>
+            <form asp-controller="Account" asp-action="Logout" method="post" style="margin: 0; width: 100%;">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="logout-nav-btn">
+                    <i class="bi bi-box-arrow-right"></i> Logout
+                </button>
+            </form>
         </div>
     </aside>
 
-    <main class="admin-main">
-        @RenderBody()
-    </main>
+    <div class="admin-layout-container">
+        
+        <header class="admin-top-bar">
+            <div class="top-bar-title">
+                @ViewData["Title"]
+            </div>
+            <div class="top-bar-actions">
+                <div class="search-container">
+                    <i class="bi bi-search"></i>
+                    <input type="text" id="dashboardSearch" placeholder="Search insights..." autocomplete="off" />
+                </div>
+                <i class="bi bi-bell icon-bell"></i>
+                <i class="bi bi-question-circle icon-help"></i>
+                
+                <div style="position: relative; display: inline-block;">
+                    <img src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=faces" 
+                         class="top-avatar" id="profileMenuTrigger" alt="Profile" style="cursor: pointer;" />
+                         
+                    <div class="profile-dropdown-card" id="profileDropdownMenu">
+                        <div class="dropdown-user-info">
+                            <strong>Admin Director</strong>
+                            <span>admin@sugbogo.com</span>
+                        </div>
+                        <hr style="border: 0; border-top: 1px solid var(--admin-border); margin: 8px 0;" />
+                        <a href="/Admin#system"><i class="bi bi-shield-check"></i> Security Settings</a>
+                        <form asp-controller="Account" asp-action="Logout" method="post" style="margin: 0; padding: 0;">
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="dropdown-logout-btn"><i class="bi bi-box-arrow-right"></i> Sign Out</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <main class="admin-main">
+            @RenderBody()
+        </main>
+    </div>
 
     <script src="~/js/site.js" asp-append-version="true"></script>
     @await RenderSectionAsync("Scripts", required: false)
-</body>
-</html>
+    
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            
+            // 1. Live Client-Side Data Row Filter
+            const searchInput = document.getElementById("dashboardSearch");
+            if (searchInput) {
+                searchInput.addEventListener("keyup", function (e) {
+                    const query = e.target.value.toLowerCase().trim();
+                    const rows = document.querySelectorAll(".admin-table tbody tr");
+                    
+                    rows.forEach(row => {
+                        if (row.cells.length === 1 && row.textContent.includes("No")) return;
+                        
+                        const rowText = row.textContent.toLowerCase();
+                        if (rowText.includes(query)) {
+                            row.style.display = "";
+                        } else {
+                            row.style.display = "none";
+                        }
+                    });
+                });
+            }
+
+            // 2. Profile Dropdown Card Controller
+            const trigger = document.getElementById("profileMenuTrigger");
+            const menu = document.getElementById("profileDropdownMenu");
+
+            if (trigger && menu) {
+                trigger.addEventListener("click", function (event) {
+                    event.stopPropagation();
+                    menu.classList.toggle("is-open");
+                });
+
+                document.addEventListener("click", function (event) {
+                    if (!menu.contains(event.target) && event.target !== trigger) {
+                        menu.classList.remove("is-open");
+                    }
+                });
+            }
+        });
+    </script>
+</body></html>

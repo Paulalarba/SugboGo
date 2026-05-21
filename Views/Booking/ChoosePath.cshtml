@@ -1,93 +1,44 @@
 @{
     ViewData["Title"] = "Choose Your Journey";
-    var curatedDestinations = ViewBag.CuratedDestinations as List<TravelSpot> ?? [];
-    var featuredDestinations = curatedDestinations.Where(spot => spot.IsPopular).Take(8).ToList();
-    var regionCount = curatedDestinations.Select(spot => spot.Region).Distinct().Count();
-    var categoryCount = curatedDestinations.Select(spot => spot.Category).Distinct().Count();
 }
 
 <section class="preference-flow">
-    <div class="preference-shell preference-shell--wide">
+    <div class="preference-shell">
         <header class="preference-hero lp-reveal">
-            <div>
+            <div style="text-align: center;">
                 <p class="lp-kicker">Step 2 of 4</p>
                 <h1>How do you want to explore Cebu?</h1>
-                <p>Your travel preferences are locked in. Now, decide if you want our AI to craft the perfect matches for you, or if you'd prefer to hunt for gems yourself.</p>
+                <p>Your travel preferences are locked in. Now, decide if you want our AI to craft the perfect match or if you'd prefer to hunt for gems yourself.</p>
             </div>
         </header>
 
-        <div class="journey-choice-grid lp-reveal">
-            <article class="journey-choice-card" onclick="location.href='/Booking/ResolveAiDestination'">
-                <div class="journey-choice-card__icon">AI</div>
-                <div>
+        <div class="recommendation-grid lp-reveal">
+            <!-- AI Choice -->
+            <article class="recommendation-card" style="cursor:pointer" onclick="location.href='/Booking/ResolveAiDestination'">
+                <div style="padding: 40px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 20px;">
+                    <div style="font-size: 3rem;">✨</div>
                     <h2>AI-Curated Magic</h2>
-                    <p>We'll analyze your vibe, budget, and interests to surface your <strong>top Cebu matches</strong> — beaches, canyoneering, cultural tours, and more — ranked just for you.</p>
+                    <p>We'll analyze your vibe, budget, and interests to pick the <strong>single best destination</strong> for you right now.</p>
+                    <div class="recommendation-card__actions" style="width: 100%;">
+                        <a href="/Booking/ResolveAiDestination" class="booking-primary">Let AI Decide</a>
+                    </div>
                 </div>
-                <a href="/Booking/ResolveAiDestination" class="booking-primary">Let AI Decide</a>
             </article>
 
-            <article class="journey-choice-card journey-choice-card--manual">
-                <div class="journey-choice-card__icon">Map</div>
-                <div>
+            <!-- Manual Choice -->
+            <article class="recommendation-card" style="cursor:pointer" onclick="location.href='/Booking/Index'">
+                <div style="padding: 40px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 20px;">
+                    <div style="font-size: 3rem;">🗺️</div>
                     <h2>Manual Explorer</h2>
-                    <p>Browse all @curatedDestinations.Count curated Cebu hidden gems across @regionCount regions and @categoryCount experience types.</p>
+                    <p>Browse our entire curated library of Cebu's hidden gems and <strong>pick the spot</strong> that speaks to you.</p>
+                    <div class="recommendation-card__actions" style="width: 100%;">
+                        <a href="/Booking/Index" class="booking-link-btn" style="justify-content: center; width: 100%;">Browse All Gems</a>
+                    </div>
                 </div>
-                <a href="#manual-library" class="booking-link-btn">Browse All Gems</a>
             </article>
         </div>
 
-        @if (featuredDestinations.Any())
-        {
-            <section class="manual-library-preview lp-reveal" aria-labelledby="featured-gems-title">
-                <div>
-                    <p class="lp-kicker">Popular starting points</p>
-                    <h2 id="featured-gems-title">Traveler favorites from the library</h2>
-                </div>
-                <div class="manual-featured-strip" aria-label="Featured Cebu destinations">
-                    @foreach (var spot in featuredDestinations)
-                    {
-                        <a href="/Booking/Index?spotId=@spot.Id&type=UserSelected" class="manual-featured-chip">
-                            <strong>@spot.Name</strong>
-                            <span>@spot.Region</span>
-                        </a>
-                    }
-                </div>
-            </section>
-        }
-
-        <section id="manual-library" class="manual-library lp-reveal" aria-labelledby="manual-library-title">
-            <header class="manual-library__header">
-                <div>
-                    <p class="lp-kicker">Manual Explorer</p>
-                    <h2 id="manual-library-title">Curated Cebu Hidden Gems</h2>
-                    <p>Pick any destination from the full library and continue to the booking wizard.</p>
-                </div>
-                <span>@curatedDestinations.Count destinations</span>
-            </header>
-
-            <div class="manual-library-grid">
-                @foreach (var spot in curatedDestinations)
-                {
-                    <a href="/Booking/Index?spotId=@spot.Id&type=UserSelected" class="manual-destination-card">
-                        <img src="@(spot.ImageUrl ?? $"/images/{spot.Id}.jpg")" alt="@spot.Name" loading="lazy" onerror="this.onerror=null;this.src='/images/hero-bg.jpg';" />
-                        <div class="manual-destination-card__body">
-                            <div>
-                                <strong>@spot.Name</strong>
-                                <small>@spot.Location</small>
-                            </div>
-                            <p>@spot.Description</p>
-                            <footer>
-                                <span>@spot.Category</span>
-                                <span>@spot.Region</span>
-                                <b>PHP @spot.BasePrice.ToString("N0")</b>
-                            </footer>
-                        </div>
-                    </a>
-                }
-            </div>
-        </section>
-
-        <div class="text-center manual-library-actions">
+        <div class="text-center" style="margin-top: 40px;">
             <a href="/Booking/Survey" class="sg-btn sg-btn--outline">Modify My Preferences</a>
         </div>
     </div>
