@@ -1479,7 +1479,7 @@ button {
 }
 
 /* ============================================================
-   SogboGo Landing Page
+   SugboGo Landing Page
    Scoped classes use lp-* so existing Explore pages stay intact.
    ============================================================ */
 :root {
@@ -3163,6 +3163,21 @@ button {
     border-color: var(--lp-blue);
     box-shadow: 0 0 0 4px color-mix(in oklch, var(--lp-blue), transparent 84%);
     outline: none;
+}
+
+.auth-form .auth-check {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    margin: 2px 0 8px;
+    font-family: var(--font-body);
+    font-weight: 600;
+}
+
+.auth-form .auth-check input {
+    width: 18px;
+    min-height: 18px;
+    accent-color: var(--lp-blue);
 }
 
 .auth-validation {

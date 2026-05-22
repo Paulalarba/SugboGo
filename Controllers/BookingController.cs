@@ -127,9 +127,9 @@ public class BookingController : Controller
             CurrentStep = "config",
             BookingType = type,
             Preferences = preferences,
-            ActivityOptions = _optionsService.GetActivities(),
-            AccommodationOptions = _optionsService.GetAccommodations(),
-            TransportOptions = _optionsService.GetTransportOptions(),
+            ActivityOptions = _optionsService.GetActivities(spot),
+            AccommodationOptions = _optionsService.GetAccommodations(spot),
+            TransportOptions = _optionsService.GetTransportOptions(spot),
             SmartRecommendations = BuildSmartRecommendations(preferences, destinationData),
             Data = new BookingDataViewModel
             {
@@ -172,28 +172,47 @@ public class BookingController : Controller
         }
 
         int? travelSpotId = int.TryParse(data.DestinationId, out int id) ? id : null;
+        var spot = travelSpotId.HasValue
+            ? await _dbContext.TravelSpots.AsNoTracking().FirstOrDefaultAsync(s => s.Id == travelSpotId.Value, cancellationToken)
+            : null;
+
+        if (travelSpotId.HasValue && spot is null)
+        {
+            return BadRequest(new { success = false, message = "The selected destination is no longer available." });
+        }
+
         var selectionType = string.Equals(data.BookingType, "SystemSelected", StringComparison.OrdinalIgnoreCase)
             ? "SystemSelected"
             : "UserSelected";
+        var travelerCount = Math.Clamp(data.TravelerCount, 1, 20);
+        var selectedActivities = NormalizeOptionNames(data.SelectedActivities);
+        var selectedAccommodation = data.SelectedAccommodation?.Trim() ?? string.Empty;
+        var selectedTransportation = data.SelectedTransportation?.Trim() ?? string.Empty;
+        var priceSummary = CalculateServerPrice(
+            spot?.BasePrice ?? data.BasePrice,
+            spot,
+            selectedActivities,
+            selectedAccommodation,
+            selectedTransportation);
 
         var booking = new Booking
         {
             UserId = userId,
             TravelSpotId = travelSpotId,
             SelectionType = selectionType,
-            DestinationName = data.DestinationName,
-            ImageUrl = data.ImageUrl,
-            Location = data.Location,
+            DestinationName = spot?.Name ?? data.DestinationName.Trim(),
+            ImageUrl = spot?.ImageUrl ?? data.ImageUrl,
+            Location = spot?.Location ?? data.Location,
             TravelDate = EnsureUtc(data.TravelDate ?? DateTime.UtcNow.AddDays(7)),
-            TravelerType = data.TravelerType,
-            TravelerCount = data.TravelerCount,
-            SelectedActivitiesJson = JsonSerializer.Serialize(data.SelectedActivities ?? []),
-            SelectedAccommodationJson = JsonSerializer.Serialize(new { Name = data.SelectedAccommodation }),
-            SelectedTransportationJson = JsonSerializer.Serialize(new { Name = data.SelectedTransportation }),
-            BasePrice = data.BasePrice,
-            AddOnsPrice = data.AddOnsPrice,
-            TaxesAndFees = data.TaxesAndFees,
-            TotalPrice = data.TotalPrice,
+            TravelerType = NormalizeTravelerType(data.TravelerType),
+            TravelerCount = travelerCount,
+            SelectedActivitiesJson = JsonSerializer.Serialize(selectedActivities),
+            SelectedAccommodationJson = JsonSerializer.Serialize(new { Name = selectedAccommodation }),
+            SelectedTransportationJson = JsonSerializer.Serialize(new { Name = selectedTransportation }),
+            BasePrice = priceSummary.BasePrice,
+            AddOnsPrice = priceSummary.AddOnsPrice,
+            TaxesAndFees = priceSummary.TaxesAndFees,
+            TotalPrice = priceSummary.TotalPrice,
             TravelerNotes = data.TravelerNotes,
             Status = "Confirmed",
             PaymentMethod = string.IsNullOrWhiteSpace(data.PaymentMethod) ? "Card" : data.PaymentMethod.Trim(),
@@ -307,5 +326,74 @@ public class BookingController : Controller
         return selections.Select(s => s.Trim().ToLowerInvariant()).Where(s => options.Any(o => o.Key == s)).Distinct().ToList();
     }
 
+    private async Task<List<TravelSpot>> GetCuratedLibraryAsync(CancellationToken cancellationToken)
+    {
+        var seedSpots = TravelSpotSeedData.GetTravelSpots();
+
+        try
+        {
+            var seedIds = seedSpots.Select(spot => spot.Id).ToList();
+            var storedSpots = await _dbContext.TravelSpots
+                .AsNoTracking()
+                .Where(spot => seedIds.Contains(spot.Id))
+                .ToDictionaryAsync(spot => spot.Id, cancellationToken);
+
+            return seedSpots
+                .Select(seed => storedSpots.TryGetValue(seed.Id, out var stored) ? stored : seed)
+                .OrderByDescending(spot => spot.IsPopular)
+                .ThenBy(spot => spot.Region)
+                .ThenBy(spot => spot.Name)
+                .ToList();
+        }
+        catch (Exception exception) when (exception is InvalidOperationException or DbUpdateException)
+        {
+            _logger.LogWarning(exception, "Falling back to seeded travel spots for the manual explorer library.");
+            return seedSpots
+                .OrderByDescending(spot => spot.IsPopular)
+                .ThenBy(spot => spot.Region)
+                .ThenBy(spot => spot.Name)
+                .ToList();
+        }
+    }
+
+    private BookingPriceSummary CalculateServerPrice(
+        decimal submittedBasePrice,
+        TravelSpot? destination,
+        IReadOnlyCollection<string> selectedActivities,
+        string selectedAccommodation,
+        string selectedTransportation)
+    {
+        var basePrice = Math.Max(0m, submittedBasePrice);
+        var activityPrice = _optionsService.GetActivities(destination)
+            .Where(option => selectedActivities.Contains(option.Name, StringComparer.OrdinalIgnoreCase))
+            .Sum(option => option.Price);
+        var accommodationPrice = _optionsService.GetAccommodations(destination)
+            .Where(option => option.Name.Equals(selectedAccommodation, StringComparison.OrdinalIgnoreCase))
+            .Sum(option => option.PricePerNight);
+        var transportPrice = _optionsService.GetTransportOptions(destination)
+            .Where(option => option.Name.Equals(selectedTransportation, StringComparison.OrdinalIgnoreCase))
+            .Sum(option => option.Price);
+        var addOnsPrice = activityPrice + accommodationPrice + transportPrice;
+        var taxesAndFees = Math.Round((basePrice + addOnsPrice) * 0.12m, 2, MidpointRounding.AwayFromZero);
+
+        return new BookingPriceSummary(basePrice, addOnsPrice, taxesAndFees, basePrice + addOnsPrice + taxesAndFees);
+    }
+
+    private static List<string> NormalizeOptionNames(IEnumerable<string>? values)
+    {
+        return values?
+            .Where(value => !string.IsNullOrWhiteSpace(value))
+            .Select(value => value.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList() ?? [];
+    }
+
+    private static string NormalizeTravelerType(string? value)
+    {
+        var normalized = value?.Trim();
+        return normalized is "Solo" or "Couple" or "Group" or "Family" ? normalized : "Solo";
+    }
+
     private sealed record BookingDestinationSeed(string Id, string Name, string ImageUrl, string Description, string Location, string Duration, string RatingSummary, string BestTimeToVisit, string MapUrl, decimal BasePrice, List<BookingActivityOption> Activities, List<BookingAccommodationOption> Accommodations, List<BookingTransportOption> TransportOptions);
+    private sealed record BookingPriceSummary(decimal BasePrice, decimal AddOnsPrice, decimal TaxesAndFees, decimal TotalPrice);
 }

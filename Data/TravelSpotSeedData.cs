@@ -171,14 +171,27 @@ public static class TravelSpotSeedData
             // Assign Base Price based on Category
             spot.BasePrice = spot.Category switch
             {
-                "Island" => 3500m,
-                "Waterfall" => 1800m,
-                "Mountain" => 1200m,
-                "Wildlife" => 2500m,
-                "Theme Park" => 1500m,
-                "Historical" => 800m,
-                "Religious" => 500m,
-                _ => 2000m
+                "Island" => 2500m,
+                "Beach" => 1800m,
+                "Waterfall" => 1200m,
+                "Mountain" => 900m,
+                "Wildlife" => 1800m,
+                "Theme Park" => 1000m,
+                "Water Park" => 1000m,
+                "Adventure" => 1600m,
+                "Eco Tour" => 1300m,
+                "Resort" => 1600m,
+                "Historical" => 500m,
+                "Religious" => 350m,
+                "Museum" => 450m,
+                "Monument" => 400m,
+                "Landmark" => 400m,
+                "Market" => 300m,
+                "Park" => 350m,
+                "Cafe" => 350m,
+                "Restaurant" => 500m,
+                "Shopping" => 300m,
+                _ => 900m
             };
         }
 

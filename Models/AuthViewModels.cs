@@ -22,6 +22,9 @@ public sealed class SignInViewModel
     [DataType(DataType.Password)]
     public string Password { get; set; } = string.Empty;
 
+    [Display(Name = "Remember me")]
+    public bool RememberMe { get; set; }
+
     public string? ReturnUrl { get; set; }
 
     public string? ErrorMessage { get; set; }

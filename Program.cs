@@ -32,11 +32,12 @@ builder.Services.AddDbContext<SugboGoDbContext>(options =>
 
 builder.Services.AddDataProtection()
     .PersistKeysToFileSystem(new DirectoryInfo(Path.Combine(builder.Environment.ContentRootPath, "App_Data", "DataProtectionKeys")))
-    .SetApplicationName("SogboGo");
+    .SetApplicationName("SugboGo");
 builder.Services.Configure<SupabaseOptions>(builder.Configuration.GetSection("Supabase"));
 builder.Services.Configure<AccountRoleOptions>(builder.Configuration.GetSection("Authentication"));
 builder.Services.AddSingleton<IPasswordService, Pbkdf2PasswordService>();
 builder.Services.AddSingleton<IAccountRoleService, AccountRoleService>();
+builder.Services.AddScoped<IUserSignInService, UserSignInService>();
 builder.Services.AddScoped<LocalJsonUserAccountStore>();
 builder.Services.AddScoped<PostgresUserAccountStore>();
 builder.Services.AddHttpClient<SupabaseUserAccountStore>();
@@ -73,7 +74,9 @@ builder.Services
     .AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
     {
-        options.Cookie.Name = "SogboGo.Auth";
+        options.Cookie.Name = "SugboGo.Auth";
+        options.ExpireTimeSpan = TimeSpan.FromDays(14);
+        options.SlidingExpiration = true;
         options.LoginPath = "/Account";
         options.LogoutPath = "/Account/Logout";
         options.AccessDeniedPath = "/Account/AccessDenied";
@@ -113,7 +116,7 @@ app.UseAuthorization();
 
 app.MapStaticAssets();
 
-// Default route points to the SogboGo landing page.
+// Default route points to the SugboGo landing page.
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");

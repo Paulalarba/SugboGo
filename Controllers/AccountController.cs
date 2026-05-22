@@ -1,4 +1,3 @@
-using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Mvc;
@@ -14,17 +13,20 @@ public sealed class AccountController : Controller
     private readonly IPasswordService _passwordService;
     private readonly IAccountRoleService _accountRoleService;
     private readonly ITravelPreferenceStore _preferenceStore;
+    private readonly IUserSignInService _signInService;
 
     public AccountController(
         IUserAccountStore userStore,
         IPasswordService passwordService,
         IAccountRoleService accountRoleService,
-        ITravelPreferenceStore preferenceStore)
+        ITravelPreferenceStore preferenceStore,
+        IUserSignInService signInService)
     {
         _userStore = userStore;
         _passwordService = passwordService;
         _accountRoleService = accountRoleService;
         _preferenceStore = preferenceStore;
+        _signInService = signInService;
     }
 
     [HttpGet]
@@ -51,12 +53,6 @@ public sealed class AccountController : Controller
         }
 
         var email = NormalizeEmail(model.Email);
-        if (RequiresGmailAccount(model.ReturnUrl) && !email.EndsWith("@gmail.com", StringComparison.OrdinalIgnoreCase))
-        {
-            ModelState.AddModelError(nameof(model.Email), "Use your Gmail address to continue with SugboGo booking.");
-            return View("Index", model);
-        }
-
         var existingUser = await _userStore.FindByEmailAsync(email, cancellationToken);
 
         return existingUser is null
@@ -86,11 +82,11 @@ public sealed class AccountController : Controller
 
         if (user is null || !_passwordService.VerifyPassword(model.Password, user.PasswordHash))
         {
-            model.ErrorMessage = "The password does not match this SogboGo account.";
+            model.ErrorMessage = "The password does not match this SugboGo account.";
             return View(model);
         }
 
-        await SignUserInAsync(user);
+        await _signInService.SignInAsync(HttpContext, user, model.RememberMe);
         return await RedirectAfterAuthenticationAsync(user, model.ReturnUrl, cancellationToken);
     }
 
@@ -113,12 +109,6 @@ public sealed class AccountController : Controller
         }
 
         var email = NormalizeEmail(model.Email);
-        if (RequiresGmailAccount(model.ReturnUrl) && !email.EndsWith("@gmail.com", StringComparison.OrdinalIgnoreCase))
-        {
-            ModelState.AddModelError(nameof(model.Email), "Use your Gmail address to continue with SugboGo booking.");
-            return View(model);
-        }
-
         var existingUser = await _userStore.FindByEmailAsync(email, cancellationToken);
 
         if (existingUser is not null)
@@ -144,7 +134,7 @@ public sealed class AccountController : Controller
             return View(model);
         }
 
-        await SignUserInAsync(user);
+        await _signInService.SignInAsync(HttpContext, user, rememberMe: false);
         return await RedirectAfterAuthenticationAsync(user, model.ReturnUrl, cancellationToken);
     }
 
@@ -185,25 +175,6 @@ public sealed class AccountController : Controller
         return View();
     }
 
-    private async Task SignUserInAsync(UserAccount user)
-    {
-        var role = _accountRoleService.ResolveEffectiveRole(user.Email, user.Role);
-        var claims = new List<Claim>
-        {
-            new(ClaimTypes.NameIdentifier, user.Id),
-            new(ClaimTypes.Email, user.Email),
-            new(ClaimTypes.Name, user.FullName),
-            new(ClaimTypes.Role, role)
-        };
-        var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
-        var principal = new ClaimsPrincipal(identity);
-
-        await HttpContext.SignInAsync(
-            CookieAuthenticationDefaults.AuthenticationScheme,
-            principal,
-            new AuthenticationProperties { IsPersistent = false });
-    }
-
     private IActionResult RedirectToRoleHome(UserAccount user)
     {
         var role = _accountRoleService.ResolveEffectiveRole(user.Email, user.Role);
@@ -242,12 +213,6 @@ public sealed class AccountController : Controller
         return User.IsInRole(AccountRoles.Admin)
             ? RedirectToAction("Index", "Admin")
             : RedirectToAction("Index", "Dashboard");
-    }
-
-    private static bool RequiresGmailAccount(string? returnUrl)
-    {
-        return !string.IsNullOrWhiteSpace(returnUrl)
-            && returnUrl.StartsWith("/Booking", StringComparison.OrdinalIgnoreCase);
     }
 
     private static string NormalizeEmail(string email) => (email ?? string.Empty).Trim().ToLowerInvariant();

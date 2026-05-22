@@ -306,7 +306,7 @@ public sealed class DashboardExperienceService : IDashboardExperienceService
             new() { Title = "Live partner check-ins", Description = "Let hotels, guides, and restaurants update arrival readiness in real time." },
             new() { Title = "Weather-aware route swaps", Description = "Automatically suggest indoor gems or safer beach timing when conditions change." },
             new() { Title = "Group vibe matching", Description = "Merge multiple travelers' quiz results into one route everyone can tolerate, maybe even love." },
-            new() { Title = "Expense split and travel wallet", Description = "Let flashpacker groups split deposits, perks, and concierge add-ons inside SogboGo." }
+            new() { Title = "Expense split and travel wallet", Description = "Let flashpacker groups split deposits, perks, and concierge add-ons inside SugboGo." }
         ];
     }
 }

@@ -20,7 +20,7 @@
             @Html.AntiForgeryToken()
             <input asp-for="ReturnUrl" type="hidden" />
 
-            <label asp-for="Email">Gmail address</label>
+            <label asp-for="Email">Email address</label>
             <input asp-for="Email" type="email" autocomplete="email" readonly />
             <span class="auth-validation" asp-validation-for="Email"></span>
 

@@ -25,13 +25,13 @@
             <input asp-for="Password" type="password" placeholder="Enter your password" autocomplete="current-password" autofocus />
             <span class="auth-validation" asp-validation-for="Password"></span>
 
+            <label class="auth-check" asp-for="RememberMe">
+                <input asp-for="RememberMe" type="checkbox" />
+                <span>Remember me</span>
+            </label>
+
             <button class="auth-primary" type="submit">Sign in</button>
         </form>
-
-        <p class="auth-recovery">
-            Need help?
-            <a asp-controller="Account" asp-action="Recover">Recover your account</a>
-        </p>
     </div>
 </section>
 

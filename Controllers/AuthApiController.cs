@@ -14,12 +14,18 @@ public sealed class AuthApiController : ControllerBase
     private readonly IUserAccountStore _userStore;
     private readonly IPasswordService _passwordService;
     private readonly IAccountRoleService _accountRoleService;
+    private readonly IUserSignInService _signInService;
 
-    public AuthApiController(IUserAccountStore userStore, IPasswordService passwordService, IAccountRoleService accountRoleService)
+    public AuthApiController(
+        IUserAccountStore userStore,
+        IPasswordService passwordService,
+        IAccountRoleService accountRoleService,
+        IUserSignInService signInService)
     {
         _userStore = userStore;
         _passwordService = passwordService;
         _accountRoleService = accountRoleService;
+        _signInService = signInService;
     }
 
     [HttpPost("check-email")]
@@ -70,7 +76,7 @@ public sealed class AuthApiController : ControllerBase
         };
 
         await _userStore.CreateAsync(user, cancellationToken);
-        await SignUserInAsync(user);
+        await _signInService.SignInAsync(HttpContext, user, rememberMe: false);
 
         return Created("/api/auth/session", new { user.Id, user.Email, user.FullName, Role = _accountRoleService.ResolveEffectiveRole(user.Email, user.Role) });
     }
@@ -85,7 +91,7 @@ public sealed class AuthApiController : ControllerBase
             return Unauthorized(new { message = "Invalid email or password." });
         }
 
-        await SignUserInAsync(user);
+        await _signInService.SignInAsync(HttpContext, user, request.RememberMe);
         return Ok(new { user.Id, user.Email, user.FullName, Role = _accountRoleService.ResolveEffectiveRole(user.Email, user.Role) });
     }
 
@@ -117,27 +123,9 @@ public sealed class AuthApiController : ControllerBase
         return NoContent();
     }
 
-    private async Task SignUserInAsync(UserAccount user)
-    {
-        var role = _accountRoleService.ResolveEffectiveRole(user.Email, user.Role);
-        var claims = new List<Claim>
-        {
-            new(ClaimTypes.NameIdentifier, user.Id),
-            new(ClaimTypes.Email, user.Email),
-            new(ClaimTypes.Name, user.FullName),
-            new(ClaimTypes.Role, role)
-        };
-        var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
-
-        await HttpContext.SignInAsync(
-            CookieAuthenticationDefaults.AuthenticationScheme,
-            new ClaimsPrincipal(identity),
-            new AuthenticationProperties { IsPersistent = false });
-    }
-
     private static string NormalizeEmail(string email) => (email ?? string.Empty).Trim().ToLowerInvariant();
 
     public sealed record EmailRequest(string Email);
     public sealed record RegisterRequest(string Email, string FullName, string Password);
-    public sealed record SignInRequest(string Email, string Password);
+    public sealed record SignInRequest(string Email, string Password, bool RememberMe = false);
 }
