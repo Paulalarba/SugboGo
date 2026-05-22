@@ -64,14 +64,10 @@
 
             <section class="preference-section preference-section--split" aria-label="Trip style">
                 <label class="preference-field">
-                    <span>
-                        Adventure level:
-                        <strong id="adventureLevelValue">@Model.AdventureLevel/5</strong>
-                    </span>
+                    <span>Adventure level</span>
                     <input asp-for="AdventureLevel" type="range" min="1" max="5" />
                     <small>1 is easygoing, 5 is high-energy.</small>
                 </label>
-
 
                 <label class="preference-field">
                     <span>Travel pace</span>
@@ -110,21 +106,4 @@
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
-
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const slider = document.querySelector('input[name="AdventureLevel"]');
-            const value = document.getElementById('adventureLevelValue');
-
-            if (!slider || !value) return;
-
-            const syncAdventureLevel = () => {
-                value.textContent = `${slider.value}/5`;
-            };
-
-            slider.addEventListener('input', syncAdventureLevel);
-            syncAdventureLevel();
-        });
-    </script>
 }
-    

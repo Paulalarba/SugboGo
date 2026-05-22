@@ -1,0 +1,36 @@
+﻿@model AdminDashboardViewModel
+@{
+    Layout = "_AdminLayout";
+}
+
+<div style="margin-bottom: 32px;">
+    <h1 style="margin: 0; font-family: 'Cormorant Garamond', serif; font-size: 2.2rem; font-weight: 700;">Traveler Profiles CRM</h1>
+    <p style="margin: 4px 0 0 0; color: var(--admin-text-muted);">Track customer travel styles, dietary or physical constraints, and total accumulated Cebu itineraries.</p>
+</div>
+
+<section class="admin-section">
+    <div class="section-header">
+        <h2 style="margin: 0; font-size: 1.1rem; font-weight: 600;">Registered Flashpackers (@Model.Flashpackers.Count)</h2>
+    </div>
+    <table class="admin-table">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Vibe / Persona Tag</th>
+                <th>Account Constraints</th>
+                <th>Total Trips</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var traveler in Model.Flashpackers)
+            {
+                <tr>
+                    <td style="font-weight: 600;">@traveler.Name</td>
+                    <td><span style="background: var(--admin-bg); padding: 4px 10px; border-radius: 4px; font-size: 0.8rem; font-weight: 500;">@traveler.Vibe</span></td>
+                    <td style="color: var(--admin-text-muted);">@traveler.Constraints</td>
+                    <td style="font-weight: 600; color: var(--admin-accent);">@traveler.CebuTrips trips</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</section>

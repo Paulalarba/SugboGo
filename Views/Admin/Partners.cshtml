@@ -1,0 +1,116 @@
+﻿@model AdminDashboardViewModel
+@{
+    Layout = "_AdminLayout";
+    string StatusClass(string status) => string.IsNullOrWhiteSpace(status) ? "status--pending" : $"status--{status.Trim().ToLowerInvariant().Replace(" ", "-")}";
+}
+
+<style>
+    .partners-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+        margin-bottom: 32px;
+    }
+    .btn-action {
+        padding: 10px 20px;
+        border-radius: 8px;
+        font-size: 0.9rem;
+        font-weight: 600;
+        cursor: pointer;
+        font-family: 'DM Sans', sans-serif;
+        transition: 0.2s;
+    }
+    .btn-action--primary {
+        background: var(--admin-accent);
+        color: white;
+        border: none;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .btn-action--primary:hover { opacity: 0.9; }
+    
+    .table-actions {
+        display: flex;
+        gap: 16px;
+        justify-content: flex-end;
+        align-items: center;
+    }
+    .lnk-edit { color: var(--admin-accent); text-decoration: none; font-weight: 600; font-size: 0.85rem; }
+    .lnk-edit:hover { text-decoration: underline; }
+    
+    .btn-delete-inline {
+        background: none;
+        border: none;
+        color: var(--admin-danger);
+        cursor: pointer;
+        font-weight: 600;
+        font-size: 0.85rem;
+        padding: 0;
+        font-family: inherit;
+    }
+    .btn-delete-inline:hover { text-decoration: underline; }
+</style>
+
+<div class="partners-header">
+    <div>
+        <h1 style="margin: 0; font-family: 'Cormorant Garamond', serif; font-size: 2.2rem; font-weight: 700;">B2B Vendor Partners</h1>
+        <p style="margin: 4px 0 0 0; color: var(--admin-text-muted);">Manage verified local van operators, private boat captains, boutique accommodation providers, and payout percentages.</p>
+    </div>
+    <a asp-controller="Admin" asp-action="CreatePartner" class="btn-action btn-action--primary">
+        <i class="bi bi-person-plus"></i> Register New Partner
+    </a>
+</div>
+
+<section class="admin-section">
+    <div class="section-header">
+        <h2 style="margin: 0; font-size: 1.1rem; font-weight: 600;">Active Contractors (@Model.Partners.Count)</h2>
+    </div>
+    <table class="admin-table">
+        <thead>
+            <tr>
+                <th>Partner Entity</th>
+                <th>Service Type</th>
+                <th>Contact Registry</th>
+                <th>Commission Model</th>
+                <th>Status</th>
+                <th style="text-align: right;">Operations Management</th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (Model.Partners == null || Model.Partners.Count == 0)
+            {
+                <tr>
+                    <td colspan="6" style="color: var(--admin-text-muted); text-align: center; padding: 40px;">
+                        No corporate vendor contractors registered yet.
+                    </td>
+                </tr>
+            }
+            else
+            {
+                @foreach (var partner in Model.Partners)
+                {
+                    int simulatedId = Math.Abs(partner.Name.GetHashCode() % 100000);
+                    <tr>
+                        <td style="font-weight: 600;">@partner.Name</td>
+                        <td><span style="border: 1px solid var(--admin-border); padding: 4px 8px; border-radius: 6px; font-size: 0.8rem;">@partner.Type</span></td>
+                        <td style="font-family: monospace; color: var(--admin-text-muted);">@partner.Contact</td>
+                        <td style="font-weight: 600;">@partner.Commission</td>
+                        <td><span class="status-pill @StatusClass(partner.Status)">@partner.Status</span></td>
+                        <td>
+                            <div class="table-actions">
+                                <a asp-controller="Admin" asp-action="EditPartner" asp-route-id="@simulatedId" class="lnk-edit">Edit</a>
+                                
+                                <form asp-controller="Admin" asp-action="DeletePartner" asp-route-id="@simulatedId" method="post" style="margin: 0; display: inline;" onsubmit="return confirm('Are you sure you want to terminate this partner vendor agreement? This might affect live itineraries.');">
+                                    @Html.AntiForgeryToken()
+                                    <button type="submit" class="btn-delete-inline">Delete</button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            }
+        </tbody>
+    </table>
+</section>

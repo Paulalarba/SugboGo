@@ -63,63 +63,6 @@ public sealed class DashboardExperienceService : IDashboardExperienceService
         };
     }
 
-    public async Task<UserProfilePageViewModel> BuildProfileForUserAsync(ClaimsPrincipal user, CancellationToken cancellationToken = default)
-    {
-        var fullName = user.FindFirstValue(ClaimTypes.Name) ?? "Traveler";
-        var email = user.FindFirstValue(ClaimTypes.Email) ?? string.Empty;
-        var userId = user.FindFirstValue(ClaimTypes.NameIdentifier) ?? string.Empty;
-        var firstName = fullName.Split(' ', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? "Traveler";
-
-        var preferences = string.IsNullOrWhiteSpace(userId)
-            ? null
-            : await _preferenceStore.FindLatestByUserIdAsync(userId, cancellationToken);
-        var bookings = await GetBookingsForUserAsync(userId, cancellationToken);
-        var savedGems = string.IsNullOrWhiteSpace(userId)
-            ? []
-            : await _savedGemStore.GetByUserIdAsync(userId, cancellationToken);
-        var recommendedSpots = await GetRecommendedTravelSpotsAsync(preferences, savedGems, cancellationToken);
-
-        var today = DateTime.Today;
-        var currentBooking = bookings
-            .Where(booking => booking.TravelDate.ToLocalTime().Date >= today &&
-                !booking.Status.Equals("Cancelled", StringComparison.OrdinalIgnoreCase))
-            .OrderBy(booking => booking.TravelDate)
-            .FirstOrDefault();
-
-        return new UserProfilePageViewModel
-        {
-            FullName = fullName,
-            Email = email,
-            FirstName = firstName,
-            UserInitial = firstName[..1].ToUpperInvariant(),
-            Preferences = preferences,
-            PlacePreferenceLabels = preferences?.PlaceInterests.Select(BuildInterestLabel).ToList() ?? [],
-            ActivityPreferenceLabels = preferences?.ActivityInterests.Select(BuildInterestLabel).ToList() ?? [],
-            CurrentBooking = currentBooking is null ? null : BuildProfileBooking(currentBooking),
-            PreviousBookings = bookings
-                .Where(booking =>
-                    (currentBooking is null || booking.Id != currentBooking.Id) &&
-                    (booking.TravelDate.ToLocalTime().Date < today ||
-                        booking.Status.Equals("Cancelled", StringComparison.OrdinalIgnoreCase)))
-                .OrderByDescending(booking => booking.TravelDate)
-                .Select(BuildProfileBooking)
-                .ToList(),
-            SavedDestinations = savedGems
-                .OrderByDescending(gem => gem.SavedAt)
-                .Select(gem => new SavedGemViewModel
-                {
-                    Id = gem.Id,
-                    Title = gem.Title,
-                    Note = string.IsNullOrWhiteSpace(gem.Note)
-                        ? $"{gem.Category} in {gem.Neighborhood}".Trim()
-                        : gem.Note
-                })
-                .ToList(),
-            Recommendations = recommendedSpots,
-            LinkedContentPlaceholders = BuildProfileLinkedContentPlaceholders()
-        };
-    }
-
     private static string BuildGreeting(string firstName)
     {
         var hour = DateTime.Now.Hour;
@@ -262,62 +205,6 @@ public sealed class DashboardExperienceService : IDashboardExperienceService
         }
     }
 
-    private async Task<List<TravelSpotSuggestionViewModel>> GetRecommendedTravelSpotsAsync(
-        TravelPreferenceRecord? preferences,
-        IReadOnlyCollection<SavedGem> savedGems,
-        CancellationToken cancellationToken)
-    {
-        try
-        {
-            var selectedInterests = preferences?.Interests
-                .Select(NormalizeInterest)
-                .ToHashSet(StringComparer.OrdinalIgnoreCase) ?? [];
-            var savedTitles = savedGems
-                .Select(gem => gem.Title)
-                .ToHashSet(StringComparer.OrdinalIgnoreCase);
-
-            var spots = await _dbContext.TravelSpots
-                .AsNoTracking()
-                .OrderBy(spot => spot.Name)
-                .ToListAsync(cancellationToken);
-
-            return spots
-                .Where(spot => !savedTitles.Contains(spot.Name))
-                .Select(spot =>
-                {
-                    var normalizedCategory = NormalizeInterest(spot.Category);
-                    var interestMatch = selectedInterests.Contains(normalizedCategory);
-                    var adventureDelta = preferences is null
-                        ? 1
-                        : Math.Abs(spot.AdventureLevel - preferences.AdventureLevel);
-
-                    return new TravelSpotSuggestionViewModel
-                    {
-                        Id = spot.Id,
-                        Name = spot.Name,
-                        Location = spot.Location,
-                        Category = spot.Category,
-                        ImageUrl = string.IsNullOrWhiteSpace(spot.ImageUrl)
-                            ? "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=900&q=80"
-                            : spot.ImageUrl,
-                        MatchScore = Math.Clamp(74 + (interestMatch ? 16 : 0) + Math.Max(0, 5 - adventureDelta), 70, 98),
-                        MatchReason = interestMatch
-                            ? $"Matches your saved {BuildInterestLabel(spot.Category)} preference."
-                            : "Suggested from available Cebu destinations in the database.",
-                        BasePrice = spot.BasePrice
-                    };
-                })
-                .OrderByDescending(spot => spot.MatchScore)
-                .ThenBy(spot => spot.Name)
-                .Take(4)
-                .ToList();
-        }
-        catch (Exception exception) when (IsMissingBookingsSchema(exception))
-        {
-            return [];
-        }
-    }
-
     private static bool IsMissingBookingsSchema(Exception exception)
     {
         for (var current = exception; current is not null; current = current.InnerException!)
@@ -347,47 +234,6 @@ public sealed class DashboardExperienceService : IDashboardExperienceService
         {
             return fallback;
         }
-    }
-
-    private static List<string> ExtractSelectedActivities(string json)
-    {
-        try
-        {
-            return System.Text.Json.JsonSerializer.Deserialize<List<string>>(json) ?? [];
-        }
-        catch
-        {
-            return [];
-        }
-    }
-
-    private static UserProfileBookingViewModel BuildProfileBooking(Booking booking)
-    {
-        var activities = ExtractSelectedActivities(booking.SelectedActivitiesJson);
-
-        return new UserProfileBookingViewModel
-        {
-            Id = booking.Id,
-            DestinationName = booking.DestinationName,
-            Location = booking.Location,
-            ImageUrl = string.IsNullOrWhiteSpace(booking.ImageUrl)
-                ? "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=900&q=80"
-                : booking.ImageUrl!,
-            TravelDate = booking.TravelDate.ToLocalTime().ToString("MMM d, yyyy"),
-            CreatedAt = booking.CreatedAt.ToLocalTime().ToString("MMM d, yyyy"),
-            TravelerSummary = $"{booking.TravelerType}, {booking.TravelerCount} traveler{(booking.TravelerCount == 1 ? string.Empty : "s")}",
-            Status = booking.Status,
-            SelectionType = booking.SelectionType.Equals("SystemSelected", StringComparison.OrdinalIgnoreCase)
-                ? "AI selected"
-                : "User selected",
-            Accommodation = ExtractSelectedName(booking.SelectedAccommodationJson, "Accommodation pending"),
-            Transportation = ExtractSelectedName(booking.SelectedTransportationJson, "Transport pending"),
-            Activities = activities,
-            PaymentMethod = string.IsNullOrWhiteSpace(booking.PaymentMethod) ? "Payment pending" : booking.PaymentMethod!,
-            QrCode = booking.QrCode,
-            TotalPrice = booking.TotalPrice,
-            Notes = booking.TravelerNotes ?? string.Empty
-        };
     }
 
     private static List<PastAdventureViewModel> BuildPastAdventures(int seed)
@@ -461,16 +307,6 @@ public sealed class DashboardExperienceService : IDashboardExperienceService
             new() { Title = "Weather-aware route swaps", Description = "Automatically suggest indoor gems or safer beach timing when conditions change." },
             new() { Title = "Group vibe matching", Description = "Merge multiple travelers' quiz results into one route everyone can tolerate, maybe even love." },
             new() { Title = "Expense split and travel wallet", Description = "Let flashpacker groups split deposits, perks, and concierge add-ons inside SogboGo." }
-        ];
-    }
-
-    private static List<DashboardFeatureSuggestionViewModel> BuildProfileLinkedContentPlaceholders()
-    {
-        return
-        [
-            new() { Title = "Saved destinations", Description = "Destinations saved from AI picks and future spot pages appear on this profile." },
-            new() { Title = "Recommendations", Description = "Database travel spots are ranked against the latest survey preferences." },
-            new() { Title = "AI-curated suggestions", Description = "A future assistant can use bookings, saved gems, and survey notes to assemble a profile-aware route." }
         ];
     }
 }

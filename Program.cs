@@ -91,23 +91,6 @@ if (!string.IsNullOrWhiteSpace(builder.Configuration.GetConnectionString("Defaul
         var dbContext = scope.ServiceProvider.GetRequiredService<SugboGoDbContext>();
         await dbContext.Database.MigrateAsync();
         await TravelSpotSeeder.SeedAsync(dbContext);
-
-        // Seed Admin User
-        var adminEmail = builder.Configuration["ADMIN_SETUP_EMAIL"] ?? "ADMIN_SETUP_EMAIL";
-        var adminPassword = builder.Configuration["ADMIN_SETUP_PASSWORD"] ?? "AdminADMIN_SETUP_PASSWORD";
-        
-        if (!await dbContext.Users.AnyAsync(u => u.Email == adminEmail))
-        {
-            var passwordService = scope.ServiceProvider.GetRequiredService<IPasswordService>();
-            dbContext.Users.Add(new SugboGo.Models.UserAccount
-            {
-                Email = adminEmail,
-                FullName = "SugboGo Admin",
-                PasswordHash = passwordService.HashPassword(adminPassword),
-                Role = AccountRoles.Admin
-            });
-            await dbContext.SaveChangesAsync();
-        }
     }
     catch (Exception exception)
     {

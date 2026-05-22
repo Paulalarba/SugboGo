@@ -6,7 +6,6 @@ using Microsoft.EntityFrameworkCore;
 using SugboGo.Data;
 using SugboGo.Models;
 using SugboGo.Services.BookingOptions;
-using SugboGo.Services.Dashboard;
 using SugboGo.Services.Travel;
 
 namespace SugboGo.Controllers;
@@ -16,7 +15,6 @@ public class BookingController : Controller
     private readonly ITravelPreferenceStore _preferenceStore;
     private readonly ICebuRecommendationService _recommendationService;
     private readonly IBookingOptionsService _optionsService;
-    private readonly IUserSavedGemStore _savedGemStore;
     private readonly SugboGoDbContext _dbContext;
     private readonly ILogger<BookingController> _logger;
 
@@ -24,14 +22,12 @@ public class BookingController : Controller
         ITravelPreferenceStore preferenceStore,
         ICebuRecommendationService recommendationService,
         IBookingOptionsService optionsService,
-        IUserSavedGemStore savedGemStore,
         SugboGoDbContext dbContext,
         ILogger<BookingController> logger)
     {
         _preferenceStore = preferenceStore;
         _recommendationService = recommendationService;
         _optionsService = optionsService;
-        _savedGemStore = savedGemStore;
         _dbContext = dbContext;
         _logger = logger;
     }
@@ -53,31 +49,31 @@ public class BookingController : Controller
 
     // STEP 2: The Decision Phase
     [Authorize]
-    public async Task<IActionResult> ChoosePath(CancellationToken cancellationToken)
+    public IActionResult ChoosePath()
     {
         ViewData["Title"] = "Choose Your Journey";
-        ViewBag.CuratedDestinations = await GetCuratedLibraryAsync(cancellationToken);
         return View();
     }
 
-    // STEP 3: The AI Resolver — shows ranked recommendations for user to pick from
+    // STEP 3: The AI Resolver
     [Authorize]
     public async Task<IActionResult> ResolveAiDestination(CancellationToken cancellationToken)
     {
         var userId = GetUserId();
         var preferences = await _preferenceStore.FindLatestByUserIdAsync(userId, cancellationToken);
-
+        
         if (preferences == null) return RedirectToAction(nameof(Survey));
 
         var results = await _recommendationService.BuildRecommendationsAsync(preferences);
+        var bestMatch = results.Recommendations.FirstOrDefault();
 
-        if (!results.Recommendations.Any())
+        if (bestMatch == null)
         {
-            return RedirectToAction(nameof(Index), new { type = "UserSelected" });
+            return RedirectToAction(nameof(Index), new { type = "UserSelected" }); 
         }
 
-        ViewData["Title"] = "AI Cebu Recommendations";
-        return View("Recommendations", results);
+        // Redirect to the Wizard with the AI's top pick
+        return RedirectToAction(nameof(Index), new { spotId = bestMatch.Destination.Id, type = "SystemSelected" });
     }
 
     // STEP 4: The Booking Wizard
@@ -161,59 +157,11 @@ public class BookingController : Controller
     [Authorize]
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> SaveFavorite(
-        string destinationId,
-        string title,
-        string category,
-        string neighborhood,
-        string? returnUrl,
-        CancellationToken cancellationToken)
-    {
-        if (string.IsNullOrWhiteSpace(title))
-        {
-            return BadRequest();
-        }
-
-        int? travelSpotId = int.TryParse(destinationId, out var parsedId) ? parsedId : null;
-        await _savedGemStore.SaveGemAsync(new SavedGem
-        {
-            UserId = GetUserId(),
-            TravelSpotId = travelSpotId,
-            Title = title.Trim(),
-            Category = string.IsNullOrWhiteSpace(category) ? "Saved destination" : category.Trim(),
-            Neighborhood = neighborhood?.Trim() ?? string.Empty,
-            Note = $"Saved from booking on {DateTime.Today:MMM d, yyyy}."
-        }, cancellationToken);
-
-        TempData["BookingMessage"] = $"{title.Trim()} was saved to your favorites.";
-
-        if (!string.IsNullOrWhiteSpace(returnUrl) && Url.IsLocalUrl(returnUrl))
-        {
-            return LocalRedirect(returnUrl);
-        }
-
-        return RedirectToAction(nameof(Index), new { spotId = travelSpotId, type = "UserSelected" });
-    }
-
-    [Authorize]
-    [HttpPost]
-    [ValidateAntiForgeryToken]
     public async Task<IActionResult> ConfirmBooking([FromBody] BookingDataViewModel data, CancellationToken cancellationToken)
     {
         if (data == null || string.IsNullOrWhiteSpace(data.DestinationName))
         {
             return BadRequest(new { success = false, message = "Invalid booking data." });
-        }
-
-        if (!data.TravelDate.HasValue)
-        {
-            return BadRequest(new { success = false, message = "Please choose a travel date before completing your booking." });
-        }
-
-        var travelDate = EnsureUtc(data.TravelDate.Value);
-        if (travelDate.Date <= DateTime.UtcNow.Date)
-        {
-            return BadRequest(new { success = false, message = "Please choose a future travel date." });
         }
 
         var userId = GetUserId();
@@ -224,46 +172,28 @@ public class BookingController : Controller
         }
 
         int? travelSpotId = int.TryParse(data.DestinationId, out int id) ? id : null;
-        var spot = travelSpotId.HasValue
-            ? await _dbContext.TravelSpots.AsNoTracking().FirstOrDefaultAsync(s => s.Id == travelSpotId.Value, cancellationToken)
-            : null;
-
-        if (travelSpotId.HasValue && spot is null)
-        {
-            return BadRequest(new { success = false, message = "The selected destination is no longer available." });
-        }
-
         var selectionType = string.Equals(data.BookingType, "SystemSelected", StringComparison.OrdinalIgnoreCase)
             ? "SystemSelected"
             : "UserSelected";
-        var travelerCount = Math.Clamp(data.TravelerCount, 1, 20);
-        var selectedActivities = NormalizeOptionNames(data.SelectedActivities);
-        var selectedAccommodation = data.SelectedAccommodation?.Trim() ?? string.Empty;
-        var selectedTransportation = data.SelectedTransportation?.Trim() ?? string.Empty;
-        var priceSummary = CalculateServerPrice(
-            spot?.BasePrice ?? data.BasePrice,
-            selectedActivities,
-            selectedAccommodation,
-            selectedTransportation);
 
         var booking = new Booking
         {
             UserId = userId,
             TravelSpotId = travelSpotId,
             SelectionType = selectionType,
-            DestinationName = spot?.Name ?? data.DestinationName.Trim(),
-            ImageUrl = spot?.ImageUrl ?? data.ImageUrl,
-            Location = spot?.Location ?? data.Location,
-            TravelDate = travelDate,
-            TravelerType = NormalizeTravelerType(data.TravelerType),
-            TravelerCount = travelerCount,
-            SelectedActivitiesJson = JsonSerializer.Serialize(selectedActivities),
-            SelectedAccommodationJson = JsonSerializer.Serialize(new { Name = selectedAccommodation }),
-            SelectedTransportationJson = JsonSerializer.Serialize(new { Name = selectedTransportation }),
-            BasePrice = priceSummary.BasePrice,
-            AddOnsPrice = priceSummary.AddOnsPrice,
-            TaxesAndFees = priceSummary.TaxesAndFees,
-            TotalPrice = priceSummary.TotalPrice,
+            DestinationName = data.DestinationName,
+            ImageUrl = data.ImageUrl,
+            Location = data.Location,
+            TravelDate = EnsureUtc(data.TravelDate ?? DateTime.UtcNow.AddDays(7)),
+            TravelerType = data.TravelerType,
+            TravelerCount = data.TravelerCount,
+            SelectedActivitiesJson = JsonSerializer.Serialize(data.SelectedActivities ?? []),
+            SelectedAccommodationJson = JsonSerializer.Serialize(new { Name = data.SelectedAccommodation }),
+            SelectedTransportationJson = JsonSerializer.Serialize(new { Name = data.SelectedTransportation }),
+            BasePrice = data.BasePrice,
+            AddOnsPrice = data.AddOnsPrice,
+            TaxesAndFees = data.TaxesAndFees,
+            TotalPrice = data.TotalPrice,
             TravelerNotes = data.TravelerNotes,
             Status = "Confirmed",
             PaymentMethod = string.IsNullOrWhiteSpace(data.PaymentMethod) ? "Card" : data.PaymentMethod.Trim(),
@@ -377,73 +307,5 @@ public class BookingController : Controller
         return selections.Select(s => s.Trim().ToLowerInvariant()).Where(s => options.Any(o => o.Key == s)).Distinct().ToList();
     }
 
-    private async Task<List<TravelSpot>> GetCuratedLibraryAsync(CancellationToken cancellationToken)
-    {
-        var seedSpots = TravelSpotSeedData.GetTravelSpots();
-
-        try
-        {
-            var seedIds = seedSpots.Select(spot => spot.Id).ToList();
-            var storedSpots = await _dbContext.TravelSpots
-                .AsNoTracking()
-                .Where(spot => seedIds.Contains(spot.Id))
-                .ToDictionaryAsync(spot => spot.Id, cancellationToken);
-
-            return seedSpots
-                .Select(seed => storedSpots.TryGetValue(seed.Id, out var stored) ? stored : seed)
-                .OrderByDescending(spot => spot.IsPopular)
-                .ThenBy(spot => spot.Region)
-                .ThenBy(spot => spot.Name)
-                .ToList();
-        }
-        catch (Exception exception) when (exception is InvalidOperationException or DbUpdateException)
-        {
-            _logger.LogWarning(exception, "Falling back to seeded travel spots for the manual explorer library.");
-            return seedSpots
-                .OrderByDescending(spot => spot.IsPopular)
-                .ThenBy(spot => spot.Region)
-                .ThenBy(spot => spot.Name)
-                .ToList();
-        }
-    }
-
-    private BookingPriceSummary CalculateServerPrice(
-        decimal submittedBasePrice,
-        IReadOnlyCollection<string> selectedActivities,
-        string selectedAccommodation,
-        string selectedTransportation)
-    {
-        var basePrice = Math.Max(0m, submittedBasePrice);
-        var activityPrice = _optionsService.GetActivities()
-            .Where(option => selectedActivities.Contains(option.Name, StringComparer.OrdinalIgnoreCase))
-            .Sum(option => option.Price);
-        var accommodationPrice = _optionsService.GetAccommodations()
-            .Where(option => option.Name.Equals(selectedAccommodation, StringComparison.OrdinalIgnoreCase))
-            .Sum(option => option.PricePerNight);
-        var transportPrice = _optionsService.GetTransportOptions()
-            .Where(option => option.Name.Equals(selectedTransportation, StringComparison.OrdinalIgnoreCase))
-            .Sum(option => option.Price);
-        var addOnsPrice = activityPrice + accommodationPrice + transportPrice;
-        var taxesAndFees = Math.Round((basePrice + addOnsPrice) * 0.12m, 2, MidpointRounding.AwayFromZero);
-
-        return new BookingPriceSummary(basePrice, addOnsPrice, taxesAndFees, basePrice + addOnsPrice + taxesAndFees);
-    }
-
-    private static List<string> NormalizeOptionNames(IEnumerable<string>? values)
-    {
-        return values?
-            .Where(value => !string.IsNullOrWhiteSpace(value))
-            .Select(value => value.Trim())
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .ToList() ?? [];
-    }
-
-    private static string NormalizeTravelerType(string? value)
-    {
-        var normalized = value?.Trim();
-        return normalized is "Solo" or "Couple" or "Group" or "Family" ? normalized : "Solo";
-    }
-
     private sealed record BookingDestinationSeed(string Id, string Name, string ImageUrl, string Description, string Location, string Duration, string RatingSummary, string BestTimeToVisit, string MapUrl, decimal BasePrice, List<BookingActivityOption> Activities, List<BookingAccommodationOption> Accommodations, List<BookingTransportOption> TransportOptions);
-    private sealed record BookingPriceSummary(decimal BasePrice, decimal AddOnsPrice, decimal TaxesAndFees, decimal TotalPrice);
 }

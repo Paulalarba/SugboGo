@@ -1,0 +1,135 @@
+﻿@model AdminDashboardViewModel
+@{
+    Layout = "_AdminLayout";
+    
+    string StatusClass(string status)
+    {
+        return string.IsNullOrWhiteSpace(status)
+            ? "status--pending"
+            : $"status--{status.Trim().ToLowerInvariant().Replace(" ", "-")}";
+    }
+}
+
+<style>
+    .gems-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+        margin-bottom: 32px;
+    }
+    .btn-action {
+        padding: 10px 20px;
+        border-radius: 8px;
+        font-size: 0.9rem;
+        font-weight: 600;
+        cursor: pointer;
+        font-family: 'DM Sans', sans-serif;
+        transition: 0.2s;
+    }
+    .btn-action--primary {
+        background: var(--admin-accent);
+        color: white;
+        border: none;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .btn-action--primary:hover { opacity: 0.9; }
+    
+    .table-actions {
+        display: flex;
+        gap: 16px;
+        justify-content: flex-end;
+        align-items: center;
+    }
+    .lnk-edit { 
+        color: var(--admin-accent); 
+        text-decoration: none; 
+        font-weight: 600; 
+        font-size: 0.85rem; 
+    }
+    .lnk-edit:hover { text-decoration: underline; }
+    
+    .btn-delete-inline {
+        background: none;
+        border: none;
+        color: var(--admin-danger);
+        cursor: pointer;
+        font-weight: 600;
+        font-size: 0.85rem;
+        padding: 0;
+        font-family: inherit;
+    }
+    .btn-delete-inline:hover { text-decoration: underline; }
+</style>
+
+<div class="gems-header">
+    <div>
+        <h1 style="margin: 0; font-family: 'Cormorant Garamond', serif; font-size: 2.2rem; font-weight: 700;">Curated Hidden Gems</h1>
+        <p style="margin: 4px 0 0 0; color: var(--admin-text-muted);">Add, review, and evaluate off-the-beaten-path locations, verification states, and safety checks across Cebu.</p>
+    </div>
+    <a asp-controller="Admin" asp-action="CreateGem" class="btn-action btn-action--primary">
+        <i class="bi bi-plus-lg"></i> Add New Gem
+    </a>
+</div>
+
+<section class="admin-section">
+    <div class="section-header">
+        <h2 style="margin: 0; font-size: 1.1rem; font-weight: 600;">Inventory Records (@Model.Gems.Count)</h2>
+    </div>
+    <table class="admin-table">
+        <thead>
+            <tr>
+                <th>Destination Name</th>
+                <th>Category</th>
+                <th>User Score</th>
+                <th>Status</th>
+                <th>Last Quality Audit</th>
+                <th style="text-align: right;">Operations Management</th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (Model.Gems == null || Model.Gems.Count == 0)
+            {
+                <tr>
+                    <td colspan="6" style="color: var(--admin-text-muted); text-align: center; padding: 40px;">
+                        No hidden gems have been indexed into the system database yet.
+                    </td>
+                </tr>
+            }
+            else
+            {
+                @foreach (var gem in Model.Gems)
+                {
+                    // Fallback simulated ID calculation using hash metrics for stable local interface testing
+                    int simulatedId = Math.Abs(gem.Name.GetHashCode() % 100000);
+                    
+                    <tr>
+                        <td style="font-weight: 600;">@gem.Name</td>
+                        <td>
+                            <span style="background: var(--admin-bg); padding: 4px 10px; border-radius: 4px; font-size: 0.8rem; font-weight: 500;">
+                                @gem.Category
+                            </span>
+                        </td>
+                        <td><strong style="font-family: 'Cormorant Garamond', serif; font-size: 1.1rem;">@gem.FlashpackerScore</strong>/10</td>
+                        <td>
+                            <span class="status-pill @StatusClass(gem.Status)">@gem.Status</span>
+                        </td>
+                        <td style="color: var(--admin-text-muted);">@gem.QualityCheckDate</td>
+                        <td>
+                            <div class="table-actions">
+                                <a asp-controller="Admin" asp-action="EditGem" asp-route-id="@simulatedId" class="lnk-edit">Edit</a>
+                                
+                                <form asp-controller="Admin" asp-action="DeleteGem" asp-route-id="@simulatedId" method="post" style="margin: 0; display: inline;" onsubmit="return confirm('Are you sure you want to permanently delete this destination entry from SugboGo catalog?');">
+                                    @Html.AntiForgeryToken()
+                                    <button type="submit" class="btn-delete-inline">Delete</button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            }
+        </tbody>
+    </table>
+</section>

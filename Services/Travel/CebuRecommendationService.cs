@@ -21,30 +21,15 @@ public sealed class CebuRecommendationService : ICebuRecommendationService
     public async Task<TravelRecommendationsViewModel> BuildRecommendationsAsync(TravelPreferenceRecord preferences)
     {
         var spots = await _dbContext.TravelSpots.ToListAsync();
-
-        var selected = preferences.PlaceInterests
-            .Concat(preferences.ActivityInterests)
-            .Select(Normalize)
-            .ToHashSet(StringComparer.OrdinalIgnoreCase);
-
-        var maxAdventureLevel = Math.Clamp(preferences.AdventureLevel, 1, 5);
-
-        var scoredDestinations = spots
-            .Select(MapToCebuDestination)
-            .Where(destination => destination.AdventureLevel <= maxAdventureLevel)
+        var selected = preferences.Interests.Select(Normalize).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        
+        var recommendations = spots
+            .Select(spot => MapToCebuDestination(spot))
             .Select(destination => Score(destination, selected, preferences))
-            .ToList();
-
-        var recommendations = scoredDestinations
-            .GroupBy(item => item.Destination.AdventureLevel)
-            .OrderByDescending(group => group.Key)
-            .Select(group => group
-                .OrderByDescending(item => item.MatchScore)
-                .ThenBy(item => item.Destination.Name)
-                .First())
+            .OrderByDescending(item => item.MatchScore)
+            .ThenBy(item => Math.Abs(item.Destination.AdventureLevel - preferences.AdventureLevel))
             .Take(4)
             .ToList();
-
 
         return new TravelRecommendationsViewModel
         {
@@ -52,194 +37,46 @@ public sealed class CebuRecommendationService : ICebuRecommendationService
             Recommendations = recommendations,
             Explanation =
             [
-                new("How we match you", "We compare your selected places and activities against each destination's category tags, then factor in your adventure level and travel pace to produce a ranked score."),
-                new("Adventure fit", "We only recommend destinations at or below your selected adventure level, then prioritize the strongest matches from the highest suitable levels first."),
-                new("Group boost", "Popular and highly-rated spots get a small boost so you always get reliable starting points alongside hidden gems."),
-                new("Getting smarter", "Future versions will learn from your bookings, saved spots, and skipped suggestions to make every recommendation feel more personal.")
-
-                ]
+                new("Preference collection", "The survey stores selected Cebu places, activity types, adventure level, budget range, travel pace, and optional notes against the signed-in user ID and email."),
+                new("Destination categories", "Each Cebu destination has searchable place and activity tags, plus metadata for intensity and trip style."),
+                new("AI matching", "The first version uses transparent scoring: category overlap, adventure fit, and travel pace. In production, this scoring can be sent to an LLM or embeddings model to explain and re-rank results."),
+                new("Continuous learning", "Clicks, swaps, saved places, completed bookings, ratings, and skipped recommendations can adjust category weights so future suggestions become more personal.")
+            ]
         };
     }
 
     private static CebuDestination MapToCebuDestination(TravelSpot spot)
     {
-        var categories = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
-        {
-            spot.Category.ToLowerInvariant()
-        };
-
-        switch (spot.Category)
-        {
-            // ── Water / Nature ────────────────────────────────────────────
-            case "Waterfall":
-                categories.Add("water-sports");
-                categories.Add("hiking");
-                categories.Add("mountains");
-                break;
-
-            case "Island":
-                categories.Add("islands");
-                categories.Add("beaches");
-                categories.Add("water-sports");
-                break;
-
-            case "Beach":
-                categories.Add("beaches");
-                categories.Add("water-sports");
-                categories.Add("slow-travel");
-                break;
-
-            case "Mountain":
-                categories.Add("hiking");
-                categories.Add("mountains");
-                break;
-
-            case "Viewpoint":
-                categories.Add("mountains");
-                categories.Add("hiking");
-                categories.Add("slow-travel");
-                break;
-
-            case "Nature Park":
-            case "Farm":
-                categories.Add("mountains");
-                categories.Add("slow-travel");
-                categories.Add("hiking");
-                break;
-
-            case "Garden":
-                categories.Add("slow-travel");
-                categories.Add("mountains");
-                break;
-
-            case "Wildlife":
-                categories.Add("water-sports");
-                categories.Add("hiking");
-                categories.Add("mountains");
-                break;
-
-            case "Eco Tour":
-                categories.Add("water-sports");
-                categories.Add("cultural-tours");
-                categories.Add("slow-travel");
-                break;
-
-            // ── Heritage / Culture ────────────────────────────────────────
-            case "Heritage":
-            case "Historical":
-                categories.Add("historical-sites");
-                categories.Add("cultural-tours");
-                break;
-
-            case "Religious":
-                categories.Add("historical-sites");
-                categories.Add("cultural-tours");
-                break;
-
-            case "Monument":
-            case "Landmark":
-                categories.Add("historical-sites");
-                categories.Add("cultural-tours");
-                categories.Add("city-districts");
-                break;
-
-            case "Museum":
-                categories.Add("historical-sites");
-                categories.Add("cultural-tours");
-                categories.Add("city-districts");
-                break;
-
-            case "Street":
-            case "Park":
-                categories.Add("historical-sites");
-                categories.Add("city-districts");
-                categories.Add("cultural-tours");
-                break;
-
-            // ── Food / Markets ────────────────────────────────────────────
-            case "Food":
-            case "Market":
-            case "Cafe":
-                categories.Add("dining");
-                categories.Add("cultural-tours");
-                categories.Add("city-districts");
-                break;
-
-            // ── Urban / Shopping ──────────────────────────────────────────
-            case "City":
-            case "Urban":
-                categories.Add("city-districts");
-                categories.Add("nightlife");
-                categories.Add("shopping-malls");
-                break;
-
-            case "Shopping":
-                categories.Add("shopping-malls");
-                categories.Add("city-districts");
-                categories.Add("dining");
-                break;
-
-            // ── Entertainment / Leisure ───────────────────────────────────
-            case "Theme Park":
-            case "Resort":
-                categories.Add("slow-travel");
-                categories.Add("city-districts");
-                break;
-        }
+        // Map TravelSpot Category to recommended categories
+        var categories = new List<string> { spot.Category.ToLowerInvariant() };
+        if (spot.Category == "Waterfall") categories.Add("water-sports");
+        if (spot.Category == "Island") categories.Add("islands");
+        if (spot.Category == "Beach") categories.Add("beaches");
+        if (spot.Category == "Mountain") categories.Add("hiking");
 
         return new CebuDestination(
             spot.Id.ToString(),
             spot.Name,
             spot.Location,
             spot.Description,
-            categories.ToList(),
+            categories,
             spot.AdventureLevel,
-            $"Great for {spot.Category.ToLowerInvariant()} lovers",
+            $"Travelers interested in {spot.Category}",
             spot.ImageUrl ?? "/images/hero-bg.jpg");
     }
 
-    private static RecommendedDestination Score(
-        CebuDestination destination,
-        HashSet<string> selected,
-        TravelPreferenceRecord preferences)
+    private static RecommendedDestination Score(CebuDestination destination, HashSet<string> selected, TravelPreferenceRecord preferences)
     {
-        var matched = destination.Categories
-            .Where(c => selected.Contains(c))
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .ToList();
-
-        // ── Interest score: PRIMARY factor, up to 75pts ───────────────────
-        // Each matched interest = 25pts, max 3 counted.
-        // This ensures cultural/mountain/etc spots always rank above
-        // unmatched beach spots regardless of adventure level.
-        var interestScore = Math.Min(matched.Count, 3) * 25;
-
-        // ── Adventure fit: SECONDARY tiebreaker, up to 20pts ─────────────
-        // Perfect match = 20pts, each level off = -4pts.
-        // Kept small so it only separates spots with equal interest scores.
-        var adventureDiff = Math.Abs(destination.AdventureLevel - preferences.AdventureLevel);
-        var adventureFit = Math.Max(0, 20 - adventureDiff * 4);
-
-        // ── Pace boost: up to 5pts ────────────────────────────────────────
-        var paceBoost = preferences.TravelPace switch
-        {
-            var p when p.Equals("Relaxed", StringComparison.OrdinalIgnoreCase)
-                && destination.AdventureLevel <= 2 => 5,
-            var p when p.Equals("Packed", StringComparison.OrdinalIgnoreCase)
-                && destination.AdventureLevel >= 4 => 5,
-            var p when p.Equals("Balanced", StringComparison.OrdinalIgnoreCase)
-                && destination.AdventureLevel is >= 2 and <= 4 => 3,
-            _ => 0
-        };
-
-        var score = Math.Clamp(interestScore + adventureFit + paceBoost, 10, 99);
+        var matched = destination.Categories.Where(category => selected.Contains(category)).ToList();
+        var interestScore = matched.Count * 25;
+        var adventureFit = Math.Max(0, 20 - (Math.Abs(destination.AdventureLevel - preferences.AdventureLevel) * 5));
+        var paceBoost = preferences.TravelPace.Equals("Relaxed", StringComparison.OrdinalIgnoreCase) && destination.AdventureLevel <= 2 ? 8 : 0;
+        paceBoost += preferences.TravelPace.Equals("Packed", StringComparison.OrdinalIgnoreCase) && (destination.Categories.Contains("water-sports") || destination.Categories.Contains("hiking")) ? 8 : 0;
+        var score = Math.Clamp(interestScore + adventureFit + paceBoost, 0, 98);
 
         var reason = matched.Count > 0
-            ? $"Matches your {string.Join(" & ", matched.Take(2).Select(ToLabel))} interests" +
-              (adventureDiff == 0
-                  ? " with a perfect adventure fit."
-                  : $" at adventure level {destination.AdventureLevel}/5.")
-            : $"A great {preferences.TravelPace.ToLowerInvariant()}-pace pick at adventure level {destination.AdventureLevel}/5.";
+            ? $"Matches your {string.Join(", ", matched.Select(ToLabel))} interests with a {preferences.TravelPace.ToLowerInvariant()} pace."
+            : $"Adds variety while staying close to your adventure level of {preferences.AdventureLevel}/5.";
 
         return new RecommendedDestination(destination, score, matched.Select(ToLabel).ToList(), reason);
     }
@@ -247,5 +84,7 @@ public sealed class CebuRecommendationService : ICebuRecommendationService
     private static string Normalize(string value) => value.Trim().ToLowerInvariant();
 
     private static string ToLabel(string key)
-        => TravelInterestCatalog.Options.FirstOrDefault(o => o.Key == key)?.Label ?? key;
+    {
+        return TravelInterestCatalog.Options.FirstOrDefault(option => option.Key == key)?.Label ?? key;
+    }
 }

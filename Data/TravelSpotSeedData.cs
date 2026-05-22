@@ -153,36 +153,18 @@ public static class TravelSpotSeedData
         foreach (var spot in spots)
         {
             spot.ImageUrl = $"/images/{spot.Id}.jpg";
-
+            
             // Assign Adventure Level based on Category
             spot.AdventureLevel = spot.Category switch
             {
-                "Mountain" => 5,
                 "Waterfall" => 4,
-                "Eco Tour" => 4,
-                "Wildlife" => 3,
                 "Island" => 3,
-                "Theme Park" => 3,
-                "Nature Park" => 3,
+                "Mountain" => 5,
                 "Beach" => 2,
-                "Viewpoint" => 2,
-                "Garden" => 2,
-                "Farm" => 2,
-                "Resort" => 2,
-                "Cafe" => 1,
                 "Historical" => 1,
-                "Heritage" => 1,
                 "Religious" => 1,
-                "Monument" => 1,
-                "Landmark" => 1,
-                "Museum" => 1,
-                "Street" => 1,
-                "Park" => 1,
-                "Market" => 1,
-                "Food" => 1,
-                "Shopping" => 1,
-                "Urban" => 1,
-                "City" => 1,
+                "Wildlife" => 3,
+                "Theme Park" => 3,
                 _ => 2
             };
 

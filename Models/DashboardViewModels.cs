@@ -16,54 +16,6 @@ public sealed class DashboardViewModel
     public List<DashboardFeatureSuggestionViewModel> FeatureSuggestions { get; set; } = [];
 }
 
-public sealed class UserProfilePageViewModel
-{
-    public string FullName { get; set; } = "Traveler";
-    public string Email { get; set; } = string.Empty;
-    public string FirstName { get; set; } = "Traveler";
-    public string UserInitial { get; set; } = "T";
-    public TravelPreferenceRecord? Preferences { get; set; }
-    public List<string> PlacePreferenceLabels { get; set; } = [];
-    public List<string> ActivityPreferenceLabels { get; set; } = [];
-    public UserProfileBookingViewModel? CurrentBooking { get; set; }
-    public List<UserProfileBookingViewModel> PreviousBookings { get; set; } = [];
-    public List<SavedGemViewModel> SavedDestinations { get; set; } = [];
-    public List<TravelSpotSuggestionViewModel> Recommendations { get; set; } = [];
-    public List<DashboardFeatureSuggestionViewModel> LinkedContentPlaceholders { get; set; } = [];
-}
-
-public sealed class UserProfileBookingViewModel
-{
-    public string Id { get; set; } = string.Empty;
-    public string DestinationName { get; set; } = string.Empty;
-    public string Location { get; set; } = string.Empty;
-    public string ImageUrl { get; set; } = string.Empty;
-    public string TravelDate { get; set; } = string.Empty;
-    public string CreatedAt { get; set; } = string.Empty;
-    public string TravelerSummary { get; set; } = string.Empty;
-    public string Status { get; set; } = string.Empty;
-    public string SelectionType { get; set; } = string.Empty;
-    public string Accommodation { get; set; } = string.Empty;
-    public string Transportation { get; set; } = string.Empty;
-    public List<string> Activities { get; set; } = [];
-    public string PaymentMethod { get; set; } = string.Empty;
-    public string QrCode { get; set; } = string.Empty;
-    public decimal TotalPrice { get; set; }
-    public string Notes { get; set; } = string.Empty;
-}
-
-public sealed class TravelSpotSuggestionViewModel
-{
-    public int Id { get; set; }
-    public string Name { get; set; } = string.Empty;
-    public string Location { get; set; } = string.Empty;
-    public string Category { get; set; } = string.Empty;
-    public string ImageUrl { get; set; } = string.Empty;
-    public string MatchReason { get; set; } = string.Empty;
-    public int MatchScore { get; set; }
-    public decimal BasePrice { get; set; }
-}
-
 public sealed class ActiveTripViewModel
 {
     public string Title { get; set; } = string.Empty;
