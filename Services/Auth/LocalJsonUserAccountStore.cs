@@ -52,6 +52,27 @@ public sealed class LocalJsonUserAccountStore : IUserAccountStore
         }
     }
 
+    public async Task<UserAccount?> FindByIdAsync(string id, CancellationToken cancellationToken = default)
+    {
+        await FileLock.WaitAsync(cancellationToken);
+        try
+        {
+            var users = await ReadUsersAsync(cancellationToken);
+            var user = users.FirstOrDefault(u => u.Id == id);
+
+            if (user is not null)
+            {
+                user.Role = AccountRoles.Normalize(user.Role);
+            }
+
+            return user;
+        }
+        finally
+        {
+            FileLock.Release();
+        }
+    }
+
     public async Task<UserAccount> CreateAsync(UserAccount account, CancellationToken cancellationToken = default)
     {
         account.Email = NormalizeEmail(account.Email);
@@ -74,6 +95,29 @@ public sealed class LocalJsonUserAccountStore : IUserAccountStore
             await JsonSerializer.SerializeAsync(stream, users, _jsonOptions, cancellationToken);
 
             return account;
+        }
+        finally
+        {
+            FileLock.Release();
+        }
+    }
+
+    public async Task UpdateAsync(UserAccount user, CancellationToken cancellationToken = default)
+    {
+        await FileLock.WaitAsync(cancellationToken);
+        try
+        {
+            var users = await ReadUsersAsync(cancellationToken);
+            var index = users.FindIndex(u => u.Id == user.Id);
+
+            if (index != -1)
+            {
+                users[index] = user;
+                Directory.CreateDirectory(Path.GetDirectoryName(_filePath)!);
+
+                await using var stream = File.Create(_filePath);
+                await JsonSerializer.SerializeAsync(stream, users, _jsonOptions, cancellationToken);
+            }
         }
         finally
         {

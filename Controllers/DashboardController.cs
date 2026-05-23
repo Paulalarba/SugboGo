@@ -13,6 +13,8 @@ public sealed class DashboardController : Controller
     private readonly IDashboardExperienceService _dashboardExperienceService;
     private readonly IDestinationPostStore _postStore;
     private readonly IUserSavedGemStore _savedGemStore;
+    private readonly IUserAccountStore _userStore;
+    private readonly IUserSignInService _signInService;
     private readonly IWebHostEnvironment _environment;
     private readonly ILogger<DashboardController> _logger;
 
@@ -20,12 +22,16 @@ public sealed class DashboardController : Controller
         IDashboardExperienceService dashboardExperienceService,
         IDestinationPostStore postStore,
         IUserSavedGemStore savedGemStore,
+        IUserAccountStore userStore,
+        IUserSignInService signInService,
         IWebHostEnvironment environment,
         ILogger<DashboardController> logger)
     {
         _dashboardExperienceService = dashboardExperienceService;
         _postStore = postStore;
         _savedGemStore = savedGemStore;
+        _userStore = userStore;
+        _signInService = signInService;
         _environment = environment;
         _logger = logger;
     }
@@ -34,6 +40,41 @@ public sealed class DashboardController : Controller
     {
         ViewData["Title"] = "Dashboard";
         return View("~/Views/User/Dashboard/Index.cshtml", await _dashboardExperienceService.BuildForUserAsync(User, cancellationToken));
+    }
+
+    public async Task<IActionResult> Profile(CancellationToken cancellationToken)
+    {
+        ViewData["Title"] = "Profile";
+        var viewModel = await _dashboardExperienceService.BuildForProfileAsync(User, cancellationToken);
+        return View("~/Views/User/Dashboard/Profile.cshtml", viewModel);
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> UpdateProfile(string fullName, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(fullName))
+        {
+            TempData["ProfileError"] = "Full name is required.";
+            return RedirectToAction(nameof(Profile));
+        }
+
+        var userId = GetUserId();
+        var user = await _userStore.FindByIdAsync(userId, cancellationToken);
+
+        if (user is null)
+        {
+            return NotFound();
+        }
+
+        user.FullName = fullName.Trim();
+        await _userStore.UpdateAsync(user, cancellationToken);
+
+        // We need to re-sign in to update the name claim in the cookie
+        await _signInService.SignInAsync(HttpContext, user, rememberMe: true);
+
+        TempData["ProfileMessage"] = "Profile updated successfully.";
+        return RedirectToAction(nameof(Profile));
     }
 
     [HttpPost]
