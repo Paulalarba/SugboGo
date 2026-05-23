@@ -2,6 +2,11 @@
 
 @{
     ViewData["Title"] = "Your Profile";
+    var savedPreferences = Model.TravelPreferenceReference;
+    var placeOptions = TravelPreferenceSeedData.PlaceOptions;
+    var activityOptions = TravelPreferenceSeedData.ActivityOptions;
+    var travelPaces = new[] { "Relaxed", "Balanced", "Packed" };
+    var budgetRanges = new[] { "Budget", "Mid-range", "Premium" };
 }
 
 <section class="feed-page" data-profile-page>
@@ -63,7 +68,7 @@
                     <div class="feed-form__grid">
                         <label>
                             <span>Full Name</span>
-                            <input name="fullName" type="text" value="@User.Identity.Name" required />
+                            <input name="fullName" type="text" value="@(User.Identity?.Name ?? string.Empty)" required />
                         </label>
                         <label>
                             <span>Email Address</span>
@@ -72,6 +77,146 @@
                     </div>
                     <div class="feed-form__actions" style="margin-top: 1rem;">
                         <button type="submit" class="sg-btn sg-btn--primary">Save Changes</button>
+                    </div>
+                </form>
+            </section>
+
+            <section id="recommendation-preferences" class="feed-panel lp-reveal">
+                <h2>Recommendation Preferences</h2>
+                <p class="text-muted">
+                    Saved to your profile and used whenever SugboGo ranks Cebu spots for you.
+                    @(savedPreferences.UpdatedAt.HasValue ? $"Last updated {savedPreferences.UpdatedAt.Value.ToLocalTime():MMM d, yyyy}." : "Save once, then update anytime from here.")
+                </p>
+                <form asp-controller="Dashboard" asp-action="UpdateTravelPreferences" method="post" class="feed-form" style="display: block;">
+                    @Html.AntiForgeryToken()
+                    <div class="preference-field">
+                        <span>Places of interest</span>
+                        <div class="interest-grid" style="margin-top: 0.75rem;">
+                            @foreach (var option in placeOptions)
+                            {
+                                var isChecked = savedPreferences.SelectedPlaces.Contains(option.Key, StringComparer.OrdinalIgnoreCase);
+                                <label class="interest-option">
+                                    <input type="checkbox" name="selectedPlaces" value="@option.Key" checked="@isChecked" />
+                                    <span>
+                                        <strong>@option.Label</strong>
+                                        <small>@option.Description</small>
+                                    </span>
+                                </label>
+                            }
+                        </div>
+                    </div>
+                    <div class="preference-field" style="margin-top: 1rem;">
+                        <span>Activities</span>
+                        <div class="interest-grid" style="margin-top: 0.75rem;">
+                            @foreach (var option in activityOptions)
+                            {
+                                var isChecked = savedPreferences.SelectedActivities.Contains(option.Key, StringComparer.OrdinalIgnoreCase);
+                                <label class="interest-option">
+                                    <input type="checkbox" name="selectedActivities" value="@option.Key" checked="@isChecked" />
+                                    <span>
+                                        <strong>@option.Label</strong>
+                                        <small>@option.Description</small>
+                                    </span>
+                                </label>
+                            }
+                        </div>
+                    </div>
+                    <div class="feed-form__grid" style="margin-top: 1rem;">
+                        <label>
+                            <span>Travel Pace</span>
+                            <select name="travelPace">
+                                @foreach (var pace in travelPaces)
+                                {
+                                    <option value="@pace" selected="@(string.Equals(savedPreferences.TravelPace, pace, StringComparison.OrdinalIgnoreCase))">@pace</option>
+                                }
+                            </select>
+                        </label>
+                        <label>
+                            <span>Budget Range</span>
+                            <select name="budgetRange">
+                                @foreach (var budget in budgetRanges)
+                                {
+                                    <option value="@budget" selected="@(string.Equals(savedPreferences.BudgetRange, budget, StringComparison.OrdinalIgnoreCase))">@budget</option>
+                                }
+                            </select>
+                        </label>
+                    </div>
+                    <label style="margin-top: 1rem;">
+                        <span>Adventure Level</span>
+                        <input name="adventureLevel" type="range" min="1" max="5" value="@savedPreferences.AdventureLevel" />
+                    </label>
+                    <label style="margin-top: 1rem;">
+                        <span>Notes for the curator</span>
+                        <textarea name="notes" rows="3">@savedPreferences.Notes</textarea>
+                    </label>
+                    <div class="feed-form__actions" style="margin-top: 1rem;">
+                        <button type="submit" class="sg-btn sg-btn--primary">Save Recommendation Preferences</button>
+                        <a href="/Booking/Survey" class="sg-btn sg-btn--outline" style="text-decoration: none;">Open Full Setup</a>
+                    </div>
+                </form>
+            </section>
+
+            <section class="feed-panel lp-reveal">
+                <h2>Checkout Reference</h2>
+                <p class="text-muted">These details prefill your booking payment step. Only the card ending is saved.</p>
+                <form asp-controller="Dashboard" asp-action="UpdateCheckoutPreference" method="post" class="feed-form" style="display: block;">
+                    @Html.AntiForgeryToken()
+                    <div class="feed-form__grid">
+                        <label>
+                            <span>First Name</span>
+                            <input name="firstName" type="text" value="@Model.CheckoutPreference.FirstName" />
+                        </label>
+                        <label>
+                            <span>Last Name</span>
+                            <input name="lastName" type="text" value="@Model.CheckoutPreference.LastName" />
+                        </label>
+                    </div>
+                    <label>
+                        <span>Address Line 1</span>
+                        <input name="addressLine1" type="text" value="@Model.CheckoutPreference.AddressLine1" />
+                    </label>
+                    <div class="feed-form__grid">
+                        <label>
+                            <span>City</span>
+                            <input name="city" type="text" value="@Model.CheckoutPreference.City" />
+                        </label>
+                        <label>
+                            <span>State/Province</span>
+                            <input name="stateProvince" type="text" value="@Model.CheckoutPreference.StateProvince" />
+                        </label>
+                    </div>
+                    <div class="feed-form__grid">
+                        <label>
+                            <span>ZIP/Postal Code</span>
+                            <input name="postalCode" type="text" value="@Model.CheckoutPreference.PostalCode" />
+                        </label>
+                        <label>
+                            <span>Email Address</span>
+                            <input name="emailAddress" type="email" value="@Model.CheckoutPreference.EmailAddress" />
+                        </label>
+                    </div>
+                    <div class="feed-form__grid">
+                        <label>
+                            <span>Name on Card</span>
+                            <input name="cardholderName" type="text" value="@Model.CheckoutPreference.CardholderName" />
+                        </label>
+                        <label>
+                            <span>Card Ending</span>
+                            <input name="cardLast4" type="text" maxlength="4" value="@Model.CheckoutPreference.CardLast4" />
+                        </label>
+                    </div>
+                    <div class="feed-form__grid">
+                        <label>
+                            <span>Expiry</span>
+                            <input name="cardExpiry" type="text" maxlength="5" placeholder="MM/YY" value="@Model.CheckoutPreference.CardExpiry" />
+                        </label>
+                        <label>
+                            <span>Payment Method</span>
+                            <input name="paymentMethod" type="text" value="@Model.CheckoutPreference.PaymentMethod" />
+                        </label>
+                    </div>
+                    <div class="feed-form__actions" style="margin-top: 1rem;">
+                        <button type="submit" class="sg-btn sg-btn--primary">Save Checkout Reference</button>
                     </div>
                 </form>
             </section>
@@ -159,7 +304,7 @@
                 <h2>Travel Preferences</h2>
                 <div class="feed-profile-details">
                     <div style="margin-bottom: 1rem;">
-                        <strong>Vibe</strong>
+                        <strong>Budget</strong>
                         <p>@Model.TravelProfile.StayPreference</p>
                     </div>
                     <div style="margin-bottom: 1rem;">
@@ -171,7 +316,7 @@
                         <p>@Model.TravelProfile.PacePreference</p>
                     </div>
                 </div>
-                <a href="/Booking/Survey" class="sg-btn sg-btn--outline sg-btn--sm" style="width: 100%; text-decoration: none; display: block; text-align: center; margin-top: 1rem;">Update Preferences</a>
+                <a href="#recommendation-preferences" class="sg-btn sg-btn--outline sg-btn--sm" style="width: 100%; text-decoration: none; display: block; text-align: center; margin-top: 1rem;">Edit Saved Reference</a>
             </article>
         </aside>
     </div>

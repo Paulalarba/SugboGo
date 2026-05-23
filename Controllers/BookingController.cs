@@ -37,6 +37,15 @@ public class BookingController : Controller
     public async Task<IActionResult> Start()
     {
         var userId = GetUserId();
+        var user = await _dbContext.Users
+            .AsNoTracking()
+            .FirstOrDefaultAsync(u => u.Id == userId);
+
+        if (user != null && user.HasCompletedSurvey)
+        {
+            return RedirectToAction(nameof(ChoosePath));
+        }
+
         var preferences = await _preferenceStore.FindLatestByUserIdAsync(userId);
 
         if (preferences == null)
@@ -88,7 +97,8 @@ public class BookingController : Controller
         string? destination, 
         decimal? price, 
         string? image, 
-        string type = "UserSelected")
+        string type = "UserSelected",
+        CancellationToken cancellationToken = default)
     {
         var userId = GetUserId();
         var preferences = await _preferenceStore.FindLatestByUserIdAsync(userId);
@@ -101,9 +111,16 @@ public class BookingController : Controller
         int? effectiveId = spotId ?? id ?? destinationId;
         
         TravelSpot? spot = null;
+        var destinationLibrary = await GetCuratedLibraryAsync(cancellationToken);
+
         if (effectiveId.HasValue)
         {
             spot = await _dbContext.TravelSpots.FindAsync(effectiveId.Value);
+            if (spot is null)
+            {
+                spot = destinationLibrary.FirstOrDefault(destinationSpot => destinationSpot.Id == effectiveId.Value);
+            }
+
             if (spot is null)
             {
                 return NotFound($"Travel spot {effectiveId.Value} was not found.");
@@ -112,15 +129,19 @@ public class BookingController : Controller
         else if (!string.IsNullOrWhiteSpace(destination))
         {
             spot = await _dbContext.TravelSpots.FirstOrDefaultAsync(s => s.Name == destination);
+            spot ??= destinationLibrary.FirstOrDefault(destinationSpot =>
+                destinationSpot.Name.Equals(destination, StringComparison.OrdinalIgnoreCase));
         }
 
         // Build destination data with fallbacks
         var destinationData = BuildDestinationData(spot, destination ?? "Custom Adventure", price ?? 3000m, image ?? "/images/hero-bg.jpg");
 
-        ViewBag.AllDestinations = await _dbContext.TravelSpots
-            .OrderByDescending(spot => spot.IsPopular)
-            .ThenBy(spot => spot.Name)
-            .ToListAsync();
+        ViewBag.AllDestinations = destinationLibrary;
+        ViewBag.RequiresDestinationSelection = spot is null
+            && string.IsNullOrWhiteSpace(destination)
+            && string.Equals(type, "UserSelected", StringComparison.OrdinalIgnoreCase);
+        var checkoutPreference = await FindCheckoutPreferenceAsync(userId, cancellationToken);
+        var nameParts = SplitName(User.FindFirstValue(ClaimTypes.Name) ?? string.Empty);
 
         var model = new BookingStepViewModel
         {
@@ -146,7 +167,19 @@ public class BookingController : Controller
                 MapUrl = destinationData.MapUrl,
                 TotalPrice = destinationData.BasePrice,
                 TravelerType = "Solo",
-                TravelerCount = 1
+                TravelerCount = 1,
+                CheckoutFirstName = checkoutPreference?.FirstName ?? nameParts.FirstName,
+                CheckoutLastName = checkoutPreference?.LastName ?? nameParts.LastName,
+                CheckoutAddressLine1 = checkoutPreference?.AddressLine1 ?? string.Empty,
+                CheckoutCity = checkoutPreference?.City ?? string.Empty,
+                CheckoutStateProvince = checkoutPreference?.StateProvince ?? string.Empty,
+                CheckoutPostalCode = checkoutPreference?.PostalCode ?? string.Empty,
+                CheckoutEmailAddress = checkoutPreference?.EmailAddress ?? User.FindFirstValue(ClaimTypes.Email) ?? string.Empty,
+                CardholderName = checkoutPreference?.CardholderName ?? User.FindFirstValue(ClaimTypes.Name) ?? string.Empty,
+                CardLast4 = checkoutPreference?.CardLast4 ?? string.Empty,
+                CardExpiry = checkoutPreference?.CardExpiry ?? string.Empty,
+                PaymentMethod = checkoutPreference?.PaymentMethod ?? "Card",
+                SaveCheckoutPreference = true
             }
         };
 
@@ -178,7 +211,14 @@ public class BookingController : Controller
 
         if (travelSpotId.HasValue && spot is null)
         {
-            return BadRequest(new { success = false, message = "The selected destination is no longer available." });
+            var seededSpot = TravelSpotSeedData.GetTravelSpots().FirstOrDefault(seedSpot => seedSpot.Id == travelSpotId.Value);
+            if (seededSpot is null)
+            {
+                return BadRequest(new { success = false, message = "The selected destination is no longer available." });
+            }
+
+            spot = seededSpot;
+            travelSpotId = null;
         }
 
         var selectionType = string.Equals(data.BookingType, "SystemSelected", StringComparison.OrdinalIgnoreCase)
@@ -188,6 +228,7 @@ public class BookingController : Controller
         var selectedActivities = NormalizeOptionNames(data.SelectedActivities);
         var selectedAccommodation = data.SelectedAccommodation?.Trim() ?? string.Empty;
         var selectedTransportation = data.SelectedTransportation?.Trim() ?? string.Empty;
+        var paymentMethod = string.IsNullOrWhiteSpace(data.PaymentMethod) ? "Card" : data.PaymentMethod.Trim();
         var priceSummary = CalculateServerPrice(
             spot?.BasePrice ?? data.BasePrice,
             spot,
@@ -215,11 +256,16 @@ public class BookingController : Controller
             TotalPrice = priceSummary.TotalPrice,
             TravelerNotes = data.TravelerNotes,
             Status = "Confirmed",
-            PaymentMethod = string.IsNullOrWhiteSpace(data.PaymentMethod) ? "Card" : data.PaymentMethod.Trim(),
+            PaymentMethod = paymentMethod,
             CreatedAt = DateTimeOffset.UtcNow
         };
 
         _dbContext.Bookings.Add(booking);
+        if (data.SaveCheckoutPreference)
+        {
+            await SaveCheckoutPreferenceAsync(userId, data, paymentMethod, cancellationToken);
+        }
+
         try
         {
             await _dbContext.SaveChangesAsync(cancellationToken);
@@ -265,9 +311,10 @@ public class BookingController : Controller
 
         if (!ModelState.IsValid) return View(model);
 
+        var userId = GetUserId();
         await _preferenceStore.SaveAsync(new TravelPreferenceRecord
         {
-            UserId = GetUserId(),
+            UserId = userId,
             Email = User.FindFirstValue(ClaimTypes.Email) ?? string.Empty,
             PlaceInterests = model.SelectedPlaces,
             ActivityInterests = model.SelectedActivities,
@@ -276,6 +323,13 @@ public class BookingController : Controller
             BudgetRange = model.BudgetRange,
             Notes = model.Notes
         }, cancellationToken);
+
+        var user = await _dbContext.Users.FindAsync([userId], cancellationToken);
+        if (user != null)
+        {
+            user.HasCompletedSurvey = true;
+            await _dbContext.SaveChangesAsync(cancellationToken);
+        }
 
         if (!string.IsNullOrWhiteSpace(model.ReturnUrl) && Url.IsLocalUrl(model.ReturnUrl))
         {
@@ -392,6 +446,100 @@ public class BookingController : Controller
     {
         var normalized = value?.Trim();
         return normalized is "Solo" or "Couple" or "Group" or "Family" ? normalized : "Solo";
+    }
+
+    private async Task<UserCheckoutPreference?> FindCheckoutPreferenceAsync(string userId, CancellationToken cancellationToken)
+    {
+        try
+        {
+            return await _dbContext.UserCheckoutPreferences
+                .AsNoTracking()
+                .FirstOrDefaultAsync(preference => preference.UserId == userId, cancellationToken);
+        }
+        catch (Exception exception) when (IsMissingCheckoutPreferenceSchema(exception))
+        {
+            _logger.LogWarning(exception, "Checkout preference schema is not available yet.");
+            return null;
+        }
+    }
+
+    private async Task SaveCheckoutPreferenceAsync(
+        string userId,
+        BookingDataViewModel data,
+        string paymentMethod,
+        CancellationToken cancellationToken)
+    {
+        UserCheckoutPreference? preference;
+        try
+        {
+            preference = await _dbContext.UserCheckoutPreferences
+                .FirstOrDefaultAsync(item => item.UserId == userId, cancellationToken);
+        }
+        catch (Exception exception) when (IsMissingCheckoutPreferenceSchema(exception))
+        {
+            _logger.LogWarning(exception, "Skipping checkout preference save because the schema is not available yet.");
+            return;
+        }
+
+        preference ??= new UserCheckoutPreference { UserId = userId };
+        preference.FirstName = Clean(data.CheckoutFirstName, 80);
+        preference.LastName = Clean(data.CheckoutLastName, 80);
+        preference.AddressLine1 = Clean(data.CheckoutAddressLine1, 180);
+        preference.City = Clean(data.CheckoutCity, 90);
+        preference.StateProvince = Clean(data.CheckoutStateProvince, 90);
+        preference.PostalCode = Clean(data.CheckoutPostalCode, 24);
+        preference.EmailAddress = Clean(data.CheckoutEmailAddress, 160);
+        preference.CardholderName = Clean(data.CardholderName, 100);
+        preference.CardLast4 = string.IsNullOrWhiteSpace(data.CardNumber)
+            ? Clean(data.CardLast4, 4)
+            : LastFourDigits(data.CardNumber);
+        preference.CardExpiry = Clean(data.CardExpiry, 7);
+        preference.PaymentMethod = Clean(paymentMethod, 40);
+        preference.UpdatedAt = DateTimeOffset.UtcNow;
+
+        if (_dbContext.Entry(preference).State == EntityState.Detached)
+        {
+            _dbContext.UserCheckoutPreferences.Add(preference);
+        }
+    }
+
+    private static (string FirstName, string LastName) SplitName(string fullName)
+    {
+        var parts = fullName.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        return parts.Length switch
+        {
+            0 => (string.Empty, string.Empty),
+            1 => (parts[0], string.Empty),
+            _ => (parts[0], string.Join(' ', parts.Skip(1)))
+        };
+    }
+
+    private static string Clean(string? value, int maxLength)
+    {
+        var cleaned = value?.Trim() ?? string.Empty;
+        return cleaned.Length <= maxLength ? cleaned : cleaned[..maxLength];
+    }
+
+    private static string LastFourDigits(string? value)
+    {
+        var digits = new string((value ?? string.Empty).Where(char.IsDigit).ToArray());
+        return digits.Length <= 4 ? digits : digits[^4..];
+    }
+
+    private static bool IsMissingCheckoutPreferenceSchema(Exception exception)
+    {
+        for (var current = exception; current is not null; current = current.InnerException!)
+        {
+            if (current.Message.Contains("UserCheckoutPreferences", StringComparison.OrdinalIgnoreCase) ||
+                current.Message.Contains("user checkout preferences", StringComparison.OrdinalIgnoreCase) ||
+                current.Message.Contains("relation", StringComparison.OrdinalIgnoreCase) ||
+                current.Message.Contains("table", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private sealed record BookingDestinationSeed(string Id, string Name, string ImageUrl, string Description, string Location, string Duration, string RatingSummary, string BestTimeToVisit, string MapUrl, decimal BasePrice, List<BookingActivityOption> Activities, List<BookingAccommodationOption> Accommodations, List<BookingTransportOption> TransportOptions);

@@ -1,9 +1,12 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using SugboGo.Data;
 using SugboGo.Models;
 using SugboGo.Services.Auth;
 using SugboGo.Services.Dashboard;
+using SugboGo.Services.Travel;
 
 namespace SugboGo.Controllers;
 
@@ -13,8 +16,10 @@ public sealed class DashboardController : Controller
     private readonly IDashboardExperienceService _dashboardExperienceService;
     private readonly IDestinationPostStore _postStore;
     private readonly IUserSavedGemStore _savedGemStore;
+    private readonly ITravelPreferenceStore _preferenceStore;
     private readonly IUserAccountStore _userStore;
     private readonly IUserSignInService _signInService;
+    private readonly SugboGoDbContext _dbContext;
     private readonly IWebHostEnvironment _environment;
     private readonly ILogger<DashboardController> _logger;
 
@@ -22,16 +27,20 @@ public sealed class DashboardController : Controller
         IDashboardExperienceService dashboardExperienceService,
         IDestinationPostStore postStore,
         IUserSavedGemStore savedGemStore,
+        ITravelPreferenceStore preferenceStore,
         IUserAccountStore userStore,
         IUserSignInService signInService,
+        SugboGoDbContext dbContext,
         IWebHostEnvironment environment,
         ILogger<DashboardController> logger)
     {
         _dashboardExperienceService = dashboardExperienceService;
         _postStore = postStore;
         _savedGemStore = savedGemStore;
+        _preferenceStore = preferenceStore;
         _userStore = userStore;
         _signInService = signInService;
+        _dbContext = dbContext;
         _environment = environment;
         _logger = logger;
     }
@@ -74,6 +83,100 @@ public sealed class DashboardController : Controller
         await _signInService.SignInAsync(HttpContext, user, rememberMe: true);
 
         TempData["ProfileMessage"] = "Profile updated successfully.";
+        return RedirectToAction(nameof(Profile));
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> UpdateTravelPreferences(
+        List<string> selectedPlaces,
+        List<string> selectedActivities,
+        int adventureLevel,
+        string travelPace,
+        string budgetRange,
+        string? notes,
+        CancellationToken cancellationToken)
+    {
+        selectedPlaces = NormalizeSelections(selectedPlaces, TravelPreferenceSeedData.PlaceOptions);
+        selectedActivities = NormalizeSelections(selectedActivities, TravelPreferenceSeedData.ActivityOptions);
+
+        if (selectedPlaces.Count == 0 || selectedActivities.Count == 0)
+        {
+            TempData["ProfileError"] = "Choose at least one place and one activity for your recommendation profile.";
+            return RedirectToAction(nameof(Profile));
+        }
+
+        var userId = GetUserId();
+        var existing = await _preferenceStore.FindLatestByUserIdAsync(userId, cancellationToken);
+
+        await _preferenceStore.SaveAsync(new TravelPreferenceRecord
+        {
+            Id = existing?.Id ?? Guid.NewGuid().ToString("N"),
+            UserId = userId,
+            Email = User.FindFirstValue(ClaimTypes.Email) ?? string.Empty,
+            PlaceInterests = selectedPlaces,
+            ActivityInterests = selectedActivities,
+            AdventureLevel = Math.Clamp(adventureLevel, 1, 5),
+            TravelPace = NormalizeChoice(travelPace, ["Relaxed", "Balanced", "Packed"], "Balanced"),
+            BudgetRange = NormalizeChoice(budgetRange, ["Budget", "Mid-range", "Premium"], "Mid-range"),
+            Notes = string.IsNullOrWhiteSpace(notes) ? null : notes.Trim(),
+            CreatedAt = existing?.CreatedAt ?? DateTimeOffset.UtcNow
+        }, cancellationToken);
+
+        TempData["ProfileMessage"] = "Travel preference reference saved to your profile.";
+
+        var user = await _dbContext.Users.FindAsync([userId], cancellationToken);
+        if (user != null)
+        {
+            user.HasCompletedSurvey = true;
+            await _dbContext.SaveChangesAsync(cancellationToken);
+        }
+
+        return RedirectToAction(nameof(Profile));
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> UpdateCheckoutPreference(
+        string firstName,
+        string lastName,
+        string addressLine1,
+        string city,
+        string stateProvince,
+        string postalCode,
+        string emailAddress,
+        string cardholderName,
+        string cardLast4,
+        string cardExpiry,
+        string paymentMethod,
+        CancellationToken cancellationToken)
+    {
+        var userId = GetUserId();
+        var preference = await _dbContext.UserCheckoutPreferences
+            .FirstOrDefaultAsync(item => item.UserId == userId, cancellationToken);
+
+        preference ??= new UserCheckoutPreference { UserId = userId };
+        preference.FirstName = Clean(firstName, 80);
+        preference.LastName = Clean(lastName, 80);
+        preference.AddressLine1 = Clean(addressLine1, 180);
+        preference.City = Clean(city, 90);
+        preference.StateProvince = Clean(stateProvince, 90);
+        preference.PostalCode = Clean(postalCode, 24);
+        preference.EmailAddress = Clean(emailAddress, 160);
+        preference.CardholderName = Clean(cardholderName, 100);
+        preference.CardLast4 = LastFourDigits(cardLast4);
+        preference.CardExpiry = Clean(cardExpiry, 7);
+        preference.PaymentMethod = string.IsNullOrWhiteSpace(paymentMethod) ? "Card" : Clean(paymentMethod, 40);
+        preference.UpdatedAt = DateTimeOffset.UtcNow;
+
+        if (_dbContext.Entry(preference).State == EntityState.Detached)
+        {
+            _dbContext.UserCheckoutPreferences.Add(preference);
+        }
+
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        TempData["ProfileMessage"] = "Checkout reference saved successfully.";
         return RedirectToAction(nameof(Profile));
     }
 
@@ -246,5 +349,33 @@ public sealed class DashboardController : Controller
         return string.IsNullOrWhiteSpace(tag)
             ? "beaches"
             : tag.Trim().ToLowerInvariant().Replace(" ", "-");
+    }
+
+    private static string Clean(string? value, int maxLength)
+    {
+        var cleaned = value?.Trim() ?? string.Empty;
+        return cleaned.Length <= maxLength ? cleaned : cleaned[..maxLength];
+    }
+
+    private static string LastFourDigits(string? value)
+    {
+        var digits = new string((value ?? string.Empty).Where(char.IsDigit).ToArray());
+        return digits.Length <= 4 ? digits : digits[^4..];
+    }
+
+    private static List<string> NormalizeSelections(IEnumerable<string>? selections, IReadOnlyList<TravelInterestOption> options)
+    {
+        return selections?
+            .Where(selection => !string.IsNullOrWhiteSpace(selection))
+            .Select(selection => selection.Trim().ToLowerInvariant())
+            .Where(selection => options.Any(option => option.Key == selection))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList() ?? [];
+    }
+
+    private static string NormalizeChoice(string? value, IReadOnlyCollection<string> allowed, string fallback)
+    {
+        var normalized = value?.Trim() ?? string.Empty;
+        return allowed.Contains(normalized) ? normalized : fallback;
     }
 }

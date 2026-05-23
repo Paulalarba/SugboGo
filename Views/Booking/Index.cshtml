@@ -1,15 +1,123 @@
 @model BookingStepViewModel
+@inject Microsoft.AspNetCore.Hosting.IWebHostEnvironment WebHostEnvironment
 
 @{
-    ViewData["Title"] = $"Book {Model.Data.DestinationName}";
+    var destinations = ViewBag.AllDestinations as List<TravelSpot> ?? [];
+    var requiresDestinationSelection = ViewBag.RequiresDestinationSelection as bool? ?? false;
+    ViewData["Title"] = requiresDestinationSelection ? "Choose Your Destination" : $"Book {Model.Data.DestinationName}";
     var minDate = DateTime.Today.AddDays(1).ToString("yyyy-MM-dd");
     var defaultDate = DateTime.Today.AddDays(7).ToString("yyyy-MM-dd");
     var profileSummary = Model.Preferences is null
         ? "Traveler profile pending. Complete the preference survey for sharper recommendations."
         : $"{Model.Preferences.BudgetRange}, {Model.Preferences.TravelPace} pace, adventure {Model.Preferences.AdventureLevel}/5";
+    var selectedSpot = destinations.FirstOrDefault(spot => spot.Id.ToString() == Model.Data.DestinationId);
+    var bookingImageUrl = selectedSpot is null
+        ? ResolveImageUrl(Model.Data.ImageUrl, "/images/hero-bg.jpg")
+        : DestinationImageUrl(selectedSpot);
 }
 
-<section class="booking-flow" data-booking-wizard data-destination-id="@Model.Data.DestinationId" data-booking-type="@Model.BookingType" data-destination="@Model.Data.DestinationName" data-base-price="@Model.Data.BasePrice" data-image-url="@Model.Data.ImageUrl" data-location="@Model.Data.Location">
+@functions {
+    private string DestinationImageUrl(TravelSpot spot)
+    {
+        if (IsUsableImage(spot.ImageUrl, out var imageUrl))
+        {
+            return Url.Content(imageUrl);
+        }
+
+        var numberedImage = $"/images/{spot.Id}.jpg";
+        if (ImageExists(numberedImage))
+        {
+            return Url.Content(numberedImage);
+        }
+
+        return ResolveImageUrl(null, CategoryFallbackImage(spot.Category));
+    }
+
+    private string AccommodationImageUrl(BookingAccommodationOption stay)
+    {
+        return ResolveImageUrl(stay.ImageUrl, "/images/421.jpg");
+    }
+
+    private string ResolveImageUrl(string? candidate, string fallbackImage)
+    {
+        if (IsUsableImage(candidate, out var imageUrl))
+        {
+            return Url.Content(imageUrl);
+        }
+
+        return Url.Content(ImageExists(fallbackImage) ? fallbackImage : "/images/hero-bg.jpg");
+    }
+
+    private bool IsUsableImage(string? candidate, out string imageUrl)
+    {
+        imageUrl = string.Empty;
+        if (string.IsNullOrWhiteSpace(candidate))
+        {
+            return false;
+        }
+
+        if (candidate.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ||
+            candidate.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+        {
+            imageUrl = candidate;
+            return true;
+        }
+
+        var relativeUrl = candidate.StartsWith("/") ? candidate : $"/{candidate.TrimStart('~', '/')}";
+        if (!ImageExists(relativeUrl))
+        {
+            return false;
+        }
+
+        imageUrl = relativeUrl;
+        return true;
+    }
+
+    private bool ImageExists(string relativeUrl)
+    {
+        if (string.IsNullOrWhiteSpace(relativeUrl))
+        {
+            return false;
+        }
+
+        try
+        {
+            var path = relativeUrl.TrimStart('~', '/').Replace('\\', '/');
+            return WebHostEnvironment.WebRootFileProvider.GetFileInfo(path).Exists;
+        }
+        catch
+        {
+            return true;
+        }
+    }
+
+    private static string CategoryFallbackImage(string? category)
+    {
+        return category switch
+        {
+            "Beach" => "/images/151.jpg",
+            "Island" => "/images/153.jpg",
+            "Waterfall" => "/images/51.jpg",
+            "Mountain" or "Viewpoint" => "/images/301.jpg",
+            "Wildlife" or "Diving" or "Marine Sanctuary" => "/images/401.jpg",
+            "Religious" => "/images/2.jpg",
+            "Historical" or "Monument" or "Landmark" => "/images/1.jpg",
+            "Museum" => "/images/15.jpg",
+            "Garden" or "Farm" => "/images/6.jpg",
+            "Park" or "Nature Park" => "/images/12.jpg",
+            "Theme Park" or "Water Park" or "Adventure" => "/images/23.jpg",
+            "Spring" or "Cave" or "Lake" => "/images/51.jpg",
+            "Resort" or "Hotel" => "/images/421.jpg",
+            "Market" => "/images/21.jpg",
+            "Shopping" or "Urban" => "/images/17.jpg",
+            "Restaurant" => "/images/423.jpg",
+            "Cafe" => "/images/22.jpg",
+            _ => "/images/hero-bg.jpg"
+        };
+    }
+}
+
+<section class="booking-flow @(requiresDestinationSelection ? "booking-flow--choose-destination" : "")" data-booking-wizard data-destination-id="@Model.Data.DestinationId" data-booking-type="@Model.BookingType" data-destination="@Model.Data.DestinationName" data-base-price="@Model.Data.BasePrice" data-image-url="@Model.Data.ImageUrl" data-location="@Model.Data.Location">
     @Html.AntiForgeryToken()
 
     <div class="booking-shell">
@@ -23,10 +131,10 @@
                     }
                     else
                     {
-                        <p class="lp-kicker">Secure Flashpacker Experience</p>
+                        <p class="lp-kicker">@(requiresDestinationSelection ? "Manual Explorer" : "Secure Flashpacker Experience")</p>
                     }
-                    <h1>@Model.Data.DestinationName</h1>
-                    <p>@Model.Data.Description</p>
+                    <h1>@(requiresDestinationSelection ? "Choose your Cebu destination" : Model.Data.DestinationName)</h1>
+                    <p>@(requiresDestinationSelection ? "Pick a destination first, then customize your date, stay, transport, activities, and payment." : Model.Data.Description)</p>
 
                     <div class="bundle-switcher">
                         <a href="/Booking/ResolveAiDestination" class="bundle-btn @(Model.BookingType == "SystemSelected" ? "is-active" : "")">
@@ -39,12 +147,25 @@
                         </a>
                     </div>
                 </div>
+                @if (requiresDestinationSelection)
+                {
+                <aside class="booking-summary booking-summary--manual" aria-label="Manual explorer preview">
+                    <img class="booking-summary__image" src="@bookingImageUrl" alt="Cebu destination preview" loading="eager" onerror="this.onerror=null;this.src='@Url.Content("/images/hero-bg.jpg")';" />
+                    <span>Manual Explorer</span>
+                    <strong>Browse Cebu Gems</strong>
+                    <small>Pick any destination below to continue booking.</small>
+                </aside>
+                }
+                else
+                {
                 <aside class="booking-summary" aria-label="Destination overview">
+                    <img class="booking-summary__image" src="@bookingImageUrl" alt="@Model.Data.DestinationName" loading="eager" onerror="this.onerror=null;this.src='@Url.Content("/images/hero-bg.jpg")';" />
                     <span>@Model.Data.RatingSummary</span>
                     <strong>PHP @Model.Data.BasePrice.ToString("N0")</strong>
                     <small>@Model.Data.Location · @Model.Data.Duration</small>
                     <small>Best time: @Model.Data.BestTimeToVisit</small>
                 </aside>
+                }
             </div>
         </header>
 
@@ -55,22 +176,60 @@
                     <button type="button" data-modal-close>&times;</button>
                 </header>
                 <div class="destination-grid">
-                    @if (ViewBag.AllDestinations != null)
+                    @if (destinations.Count > 0)
                     {
-                        foreach (var spot in (List<TravelSpot>)ViewBag.AllDestinations)
+                        foreach (var spot in destinations)
                         {
                             <a href="/Booking/Index?spotId=@spot.Id&type=UserSelected" class="dest-card">
-                                <img src="@(spot.ImageUrl ?? $"/images/{spot.Id}.jpg")" alt="@spot.Name" />
+                                <img src="@DestinationImageUrl(spot)" alt="@spot.Name" loading="lazy" onerror="this.onerror=null;this.src='@Url.Content("/images/hero-bg.jpg")';" />
                                 <div>
                                     <strong>@spot.Name</strong>
                                     <small>@spot.Location</small>
+                                    <small>From PHP @spot.BasePrice.ToString("N0")</small>
                                 </div>
                             </a>
                         }
                     }
+                    else
+                    {
+                        <p class="text-muted">No destinations are available right now.</p>
+                    }
                 </div>
             </div>
         </div>
+
+        @if (requiresDestinationSelection)
+        {
+            <section class="manual-destination-panel lp-reveal" aria-label="Manual destination selection">
+                <div class="manual-destination-panel__header">
+                    <div>
+                        <p class="lp-kicker">Manual Explorer</p>
+                        <h2>Select a destination to continue</h2>
+                    </div>
+                    <a href="/Booking/ResolveAiDestination" class="booking-link-btn">Let AI pick instead</a>
+                </div>
+                <div class="destination-grid">
+                    @if (destinations.Count > 0)
+                    {
+                        foreach (var spot in destinations)
+                        {
+                            <a href="/Booking/Index?spotId=@spot.Id&type=UserSelected" class="dest-card">
+                                <img src="@DestinationImageUrl(spot)" alt="@spot.Name" loading="lazy" onerror="this.onerror=null;this.src='@Url.Content("/images/hero-bg.jpg")';" />
+                                <div>
+                                    <strong>@spot.Name</strong>
+                                    <small>@spot.Location</small>
+                                    <small>@spot.Category - From PHP @spot.BasePrice.ToString("N0")</small>
+                                </div>
+                            </a>
+                        }
+                    }
+                    else
+                    {
+                        <p class="text-muted">No destinations are available right now.</p>
+                    }
+                </div>
+            </section>
+        }
 
         <nav class="booking-progress lp-reveal" aria-label="Booking progress">
             <span class="is-active" data-step-indicator="config">1. Customize</span>
@@ -133,7 +292,7 @@
                                 {
                                     <label class="booking-choice booking-choice--media">
                                         <input type="radio" name="accommodation" value="@stay.Name" data-price="@stay.PricePerNight" @(stay.PricePerNight == 0 ? "checked" : null) />
-                                        <img src="@stay.ImageUrl" alt="@stay.Name" />
+                                        <img src="@AccommodationImageUrl(stay)" alt="@stay.Name" loading="lazy" onerror="this.onerror=null;this.src='@Url.Content("/images/421.jpg")';" />
                                         <span>
                                             <strong>@stay.Name</strong>
                                             <small>@stay.Type · @stay.Amenities</small>
@@ -215,45 +374,77 @@
         </section>
 
         <section class="booking-stage" data-booking-step="payment">
-            <div class="flash-checkout">
-                <main class="flash-checkout__form">
-                    <h2>Digital Payment</h2>
-                    <p class="text-muted">Choose your preferred tech-savvy payment method.</p>
-                    <div class="quick-pay">
-                        <button type="button" data-pay-method="GCash">
-                            <i class="payment-icon">G</i>
-                            <span>GCash</span>
-                        </button>
-                        <button type="button" data-pay-method="Maya">
-                            <i class="payment-icon">M</i>
-                            <span>Maya</span>
-                        </button>
-                        <button type="button" data-pay-method="Card">
-                            <i class="payment-icon">C</i>
-                            <span>Card</span>
-                        </button>
-                        <button type="button" data-pay-method="PayPal">
-                            <i class="payment-icon">P</i>
-                            <span>PayPal</span>
-                        </button>
+            <div class="checkout-composer">
+                <main class="checkout-composer__form">
+                    <p class="lp-kicker">Checkout</p>
+                    <h2>Payment details</h2>
+                    <p class="checkout-copy">Saved checkout references are reused on your next booking and can be edited from Profile.</p>
+
+                    <div class="checkout-section-title">Traveler & payment</div>
+                    <div class="checkout-grid checkout-grid--two">
+                        <input type="text" id="checkout-first-name" placeholder="First Name" value="@Model.Data.CheckoutFirstName" autocomplete="given-name" required />
+                        <input type="text" id="checkout-last-name" placeholder="Last Name" value="@Model.Data.CheckoutLastName" autocomplete="family-name" required />
                     </div>
-                    <div class="journey-item__actions" style="margin-top: 2rem;">
+                    <input type="text" id="checkout-address" placeholder="Address Line 1" value="@Model.Data.CheckoutAddressLine1" autocomplete="address-line1" required />
+                    <div class="checkout-grid checkout-grid--three">
+                        <input type="text" id="checkout-city" placeholder="City" value="@Model.Data.CheckoutCity" autocomplete="address-level2" required />
+                        <input type="text" id="checkout-state" placeholder="State/Province" value="@Model.Data.CheckoutStateProvince" autocomplete="address-level1" required />
+                        <input type="text" id="checkout-postal" placeholder="ZIP/Postal Code" value="@Model.Data.CheckoutPostalCode" autocomplete="postal-code" required />
+                    </div>
+                    <input type="email" id="checkout-email" placeholder="Email Address" value="@Model.Data.CheckoutEmailAddress" autocomplete="email" required />
+
+                    <div class="checkout-divider"></div>
+
+                    @if (!string.IsNullOrWhiteSpace(Model.Data.CardLast4))
+                    {
+                        <div class="saved-payment-reference">
+                            <strong>Saved reference</strong>
+                            <span>@Model.Data.PaymentMethod ending @Model.Data.CardLast4</span>
+                        </div>
+                    }
+
+                    <div class="checkout-grid checkout-grid--card">
+                        <input type="text" id="card-number" placeholder="Card Number" maxlength="19" autocomplete="cc-number" data-saved-last4="@Model.Data.CardLast4" />
+                        <input type="text" id="card-expiry" placeholder="MM/YY" maxlength="5" value="@Model.Data.CardExpiry" autocomplete="cc-exp" required />
+                        <input type="password" id="card-cvv" placeholder="CVV" maxlength="4" autocomplete="cc-csc" required />
+                    </div>
+                    <input type="text" id="card-name" placeholder="Name on Card" value="@Model.Data.CardholderName" autocomplete="cc-name" required />
+
+                    <label class="checkout-save-reference">
+                        <input type="checkbox" id="save-checkout-reference" checked />
+                        <span>Save this checkout reference to my profile</span>
+                    </label>
+
+                    <div class="checkout-actions">
                         <button type="button" class="booking-link-btn" data-goto-step="review">Back</button>
-                        <button type="button" class="booking-primary" id="btn-submit-booking">Complete Booking</button>
+                        <button type="button" class="booking-primary" id="btn-submit-booking" disabled>Complete Booking & Pay</button>
                     </div>
-                    <div class="booking-divider"><span>Encrypted Transaction</span></div>
+
                     <div class="payment-sim" data-payment-sim hidden>
                         <div class="spinner"></div>
-                        <p>Securing your Cebu adventure...</p>
+                        <p>Processing secure payment...</p>
                     </div>
                 </main>
-                <aside class="payment-recap">
-                    <h2>Flashpacker Protection</h2>
-                    <ul class="check-list">
-                        <li>Instant QR Pass generation</li>
-                        <li>24/7 Digital support access</li>
-                        <li>Flexible rescheduling coordination</li>
-                    </ul>
+                <aside class="checkout-order-summary">
+                    <h2>Order Summary</h2>
+                    <div class="checkout-order-summary__item">
+                        <img src="@Model.Data.ImageUrl" alt="@Model.Data.DestinationName" />
+                        <div>
+                            <strong>@Model.Data.DestinationName</strong>
+                            <span>Quantity: <span data-summary-quantity>@Model.Data.TravelerCount</span></span>
+                        </div>
+                        <b>PHP <span data-summary-base>@Model.Data.BasePrice.ToString("N0")</span></b>
+                    </div>
+                    <dl>
+                        <div><dt>Subtotal:</dt><dd>PHP <span data-summary-subtotal>@Model.Data.BasePrice.ToString("N0")</span></dd></div>
+                        <div><dt>Add-ons:</dt><dd>PHP <span data-summary-addons>0</span></dd></div>
+                        <div><dt>Tax:</dt><dd>PHP <span data-summary-tax>0</span></dd></div>
+                    </dl>
+                    <div class="checkout-order-summary__total">
+                        <span>Total:</span>
+                        <strong>PHP <span data-summary-total>@Model.Data.BasePrice.ToString("N0")</span></strong>
+                    </div>
+                    <button type="button" class="checkout-edit-cart" data-goto-step="config">Edit Trip</button>
                 </aside>
             </div>
         </section>

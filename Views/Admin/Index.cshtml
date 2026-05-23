@@ -177,6 +177,56 @@
         border-color: var(--admin-accent);
         color: var(--admin-accent);
     }
+
+    /* Activity Feed & Realistic Cards */
+    .activity-feed {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+    }
+    .activity-card {
+        background: #f8fbf9;
+        border: 1px solid var(--admin-border);
+        border-radius: 12px;
+        padding: 20px;
+        display: grid;
+        grid-template-columns: auto 1fr auto;
+        gap: 20px;
+        align-items: center;
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .activity-card:hover {
+        transform: translateY(-2px);
+        border-color: var(--admin-accent);
+        box-shadow: 0 4px 12px rgba(29, 42, 38, 0.05);
+    }
+    .activity-icon {
+        width: 48px;
+        height: 48px;
+        background: white;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }
+    .activity-details h4 { margin: 0 0 4px 0; font-size: 1rem; color: var(--admin-text-main); }
+    .activity-details p { margin: 0; font-size: 0.85rem; color: var(--admin-text-muted); line-height: 1.4; }
+    .activity-meta { text-align: right; }
+    .activity-meta strong { display: block; font-size: 1.1rem; color: var(--admin-accent); margin-bottom: 4px; }
+    
+    .status-badge {
+        display: inline-block;
+        padding: 4px 10px;
+        border-radius: 12px;
+        font-size: 0.7rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    .status-badge--confirmed { background: #e6f6ed; color: #15803d; }
+    .status-badge--pending { background: #fef9c3; color: #a16207; }
 </style>
 
 <header class="dashboard-header">
@@ -224,54 +274,44 @@
 </div>
 
 <div class="dashboard-main-split">
-    
-    <section class="chart-section">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-            <h2 style="margin: 0; font-size: 1.1rem; font-weight: 600; color: var(--admin-text-main);">Booking Velocity</h2>
-            <span style="font-size: 0.8rem; color: var(--admin-text-muted); font-weight: 600;">Last 30 Days</span>
+
+    <section class="chart-section" style="grid-column: span 2;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+            <h2 style="margin: 0; font-size: 1.2rem; font-weight: 700; color: var(--admin-text-main);">Live Booking Activity</h2>
+            <span class="status-badge status-badge--confirmed">System Online</span>
         </div>
-        <p style="margin: 0 0 16px 0; font-size: 0.9rem; color: var(--admin-text-muted);">
-            Your heritage tour operations are performing 12% above quarterly targets. Most bookings are centered in the Historic Cebu District today.
-        </p>
-        
-        <div class="chart-container">
-            <div class="chart-bar-wrapper">
-                <div class="chart-bar" style="height: 35%;"></div>
-                <span class="chart-label">Oct 01</span>
-            </div>
-            <div class="chart-bar-wrapper">
-                <div class="chart-bar" style="height: 55%;"></div>
-                <span class="chart-label">Oct 07</span>
-            </div>
-            <div class="chart-bar-wrapper">
-                <div class="chart-bar" style="height: 48%;"></div>
-                <span class="chart-label">Oct 14</span>
-            </div>
-            <div class="chart-bar-wrapper">
-                <div class="chart-bar" style="height: 75%;"></div>
-                <span class="chart-label">Oct 21</span>
-            </div>
-            <div class="chart-bar-wrapper">
-                <div class="chart-bar is-today" style="height: 90%;"></div>
-                <span class="chart-label" style="font-weight: 700; color: var(--admin-text-main);">Today</span>
-            </div>
-            <div class="chart-bar-wrapper">
-                <div class="chart-bar" style="height: 25%; background: var(--admin-surface); border: 1px dashed var(--admin-border);"></div>
-                <span class="chart-label" style="font-style: italic;">Forecast</span>
-            </div>
+
+        <div class="activity-feed">
+            @if (Model.Bookings.Any())
+            {
+                foreach (var booking in Model.Bookings.Take(5))
+                {
+                    <div class="activity-card">
+                        <div class="activity-icon">📍</div>
+                        <div class="activity-details">
+                            <h4>@booking.UserName booked @booking.Destination</h4>
+                            <p>
+                                <strong>Setup:</strong> @(booking.SelectedActivities.Any() ? string.Join(", ", booking.SelectedActivities) : "No add-ons") 
+                                &middot; <strong>Transport:</strong> @booking.SelectedTransport
+                            </p>
+                            <p>
+                                <small>Paid via @booking.PaymentMethod &middot; @booking.TravelerType (@booking.TravelerCount travelers)</small>
+                            </p>
+                        </div>
+                        <div class="activity-meta">
+                            <strong>₱@booking.Amount.ToString("N0")</strong>
+                            <span class="status-badge status-badge--confirmed">@booking.Status</span>
+                        </div>
+                    </div>
+                }
+            }
+            else
+            {
+                <div style="text-align: center; padding: 40px; color: var(--admin-text-muted);">
+                    <p>No recent booking activity detected.</p>
+                </div>
+            }
         </div>
     </section>
 
-    <div class="sidebar-cards-group">
-        <aside class="trending-card">
-            <span class="trending-tag">Trending Spotlight</span>
-            <h3 class="trending-title">Oslob Heritage Walk</h3>
-            <p style="font-size: 0.9rem; line-height: 1.5; color: var(--admin-text-main); margin-bottom: 24px;">
-                Bookings for this historical walking tour increased by 45% following the feature in "Asian Heritage Monthly".
-            </p>
-            <button class="btn-action" onclick="window.location.hash = 'gems';" type="button">
-                View Destination Details
-            </button>
-        </aside>
-    </div>
 </div>

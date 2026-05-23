@@ -186,7 +186,7 @@ public sealed class AccountController : Controller
     private async Task<IActionResult> RedirectAfterAuthenticationAsync(UserAccount user, string? returnUrl, CancellationToken cancellationToken)
     {
         var role = _accountRoleService.ResolveEffectiveRole(user.Email, user.Role);
-        if (role != AccountRoles.Admin)
+        if (role != AccountRoles.Admin && !user.HasCompletedSurvey)
         {
             var preferences = await _preferenceStore.FindLatestByUserIdAsync(user.Id, cancellationToken);
             if (preferences is null || preferences.PlaceInterests.Count == 0 || preferences.ActivityInterests.Count == 0)

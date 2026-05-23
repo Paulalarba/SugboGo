@@ -109,12 +109,14 @@ if (!app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseStaticFiles();
+
+app.MapStaticAssets().AllowAnonymous();
+
 app.UseRouting();
 
 app.UseAuthentication();
 app.UseAuthorization();
-
-app.MapStaticAssets();
 
 // Default route points to the SugboGo landing page.
 app.MapControllerRoute(

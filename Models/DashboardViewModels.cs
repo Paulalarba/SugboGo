@@ -13,6 +13,8 @@ public sealed class DashboardViewModel
     public List<SavedGemViewModel> SavedGems { get; set; } = [];
     public List<PastAdventureViewModel> PastAdventures { get; set; } = [];
     public TravelProfileViewModel TravelProfile { get; set; } = new();
+    public TravelPreferenceReferenceViewModel TravelPreferenceReference { get; set; } = new();
+    public CheckoutPreferenceViewModel CheckoutPreference { get; set; } = new();
     public List<DashboardFeatureSuggestionViewModel> FeatureSuggestions { get; set; } = [];
 }
 
@@ -119,6 +121,34 @@ public sealed class TravelProfileViewModel
     public string PacePreference { get; set; } = string.Empty;
     public string Notifications { get; set; } = string.Empty;
     public string PaymentSummary { get; set; } = string.Empty;
+}
+
+public sealed class TravelPreferenceReferenceViewModel
+{
+    public List<string> SelectedPlaces { get; set; } = [];
+    public List<string> SelectedActivities { get; set; } = [];
+    public int AdventureLevel { get; set; } = 3;
+    public string TravelPace { get; set; } = "Balanced";
+    public string BudgetRange { get; set; } = "Mid-range";
+    public string? Notes { get; set; }
+    public DateTimeOffset? UpdatedAt { get; set; }
+    public bool HasSavedPreferences => SelectedPlaces.Count > 0 || SelectedActivities.Count > 0;
+}
+
+public sealed class CheckoutPreferenceViewModel
+{
+    public string FirstName { get; set; } = string.Empty;
+    public string LastName { get; set; } = string.Empty;
+    public string AddressLine1 { get; set; } = string.Empty;
+    public string City { get; set; } = string.Empty;
+    public string StateProvince { get; set; } = string.Empty;
+    public string PostalCode { get; set; } = string.Empty;
+    public string EmailAddress { get; set; } = string.Empty;
+    public string CardholderName { get; set; } = string.Empty;
+    public string CardLast4 { get; set; } = string.Empty;
+    public string CardExpiry { get; set; } = string.Empty;
+    public string PaymentMethod { get; set; } = "Card";
+    public bool HasSavedPayment => !string.IsNullOrWhiteSpace(CardLast4);
 }
 
 public sealed class DashboardFeatureSuggestionViewModel

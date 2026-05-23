@@ -20,6 +20,7 @@ public sealed class SugboGoDbContext : DbContext
     public DbSet<AdminPartner> AdminPartners => Set<AdminPartner>();
     public DbSet<Booking> Bookings => Set<Booking>();
     public DbSet<TravelSpot> TravelSpots => Set<TravelSpot>();
+    public DbSet<UserCheckoutPreference> UserCheckoutPreferences => Set<UserCheckoutPreference>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -108,6 +109,12 @@ public sealed class SugboGoDbContext : DbContext
             entity.HasKey(e => e.Id);
             entity.HasIndex(e => e.UserId);
             entity.HasIndex(e => e.TravelSpotId);
+        });
+
+        modelBuilder.Entity<UserCheckoutPreference>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => e.UserId).IsUnique();
         });
 
         modelBuilder.Entity<AdminGem>().HasKey(e => e.Id);
