@@ -39,6 +39,19 @@ public sealed class BookingDataViewModel
     public string SelectedAccommodation { get; set; } = string.Empty;
     public string SelectedTransportation { get; set; } = string.Empty;
     public string PaymentMethod { get; set; } = string.Empty;
+    public string CheckoutFirstName { get; set; } = string.Empty;
+    public string CheckoutLastName { get; set; } = string.Empty;
+    public string CheckoutAddressLine1 { get; set; } = string.Empty;
+    public string CheckoutCity { get; set; } = string.Empty;
+    public string CheckoutStateProvince { get; set; } = string.Empty;
+    public string CheckoutPostalCode { get; set; } = string.Empty;
+    public string CheckoutEmailAddress { get; set; } = string.Empty;
+    public string CardholderName { get; set; } = string.Empty;
+    public string CardLast4 { get; set; } = string.Empty;
+    public string CardNumber { get; set; } = string.Empty;
+    public string CardExpiry { get; set; } = string.Empty;
+    public string CardCvv { get; set; } = string.Empty;
+    public bool SaveCheckoutPreference { get; set; } = true;
 
     public string? TravelerNotes { get; set; }
     

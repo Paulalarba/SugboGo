@@ -40,6 +40,7 @@ public sealed class DashboardExperienceService : IDashboardExperienceService
             ? []
             : await _savedGemStore.GetByUserIdAsync(userId, cancellationToken);
         var bookings = await GetBookingsForUserAsync(userId, cancellationToken);
+        var checkoutPreference = await GetCheckoutPreferenceAsync(userId, cancellationToken);
 
         return new DashboardViewModel
         {
@@ -58,7 +59,9 @@ public sealed class DashboardExperienceService : IDashboardExperienceService
                 Note = gem.Note
             }).ToList(),
             PastAdventures = BuildPastAdventures(seed),
-            TravelProfile = BuildTravelProfile(preferences, seed),
+            TravelProfile = BuildTravelProfile(preferences, seed, checkoutPreference),
+            TravelPreferenceReference = BuildTravelPreferenceReference(preferences),
+            CheckoutPreference = BuildCheckoutPreference(checkoutPreference),
             FeatureSuggestions = BuildFeatureSuggestions()
         };
     }
@@ -80,6 +83,7 @@ public sealed class DashboardExperienceService : IDashboardExperienceService
             ? []
             : await _savedGemStore.GetByUserIdAsync(userId, cancellationToken);
         var bookings = await GetBookingsForUserAsync(userId, cancellationToken);
+        var checkoutPreference = await GetCheckoutPreferenceAsync(userId, cancellationToken);
 
         return new DashboardViewModel
         {
@@ -98,7 +102,9 @@ public sealed class DashboardExperienceService : IDashboardExperienceService
                 Note = gem.Note
             }).ToList(),
             PastAdventures = BuildPastAdventures(seed),
-            TravelProfile = BuildTravelProfile(preferences, seed),
+            TravelProfile = BuildTravelProfile(preferences, seed, checkoutPreference),
+            TravelPreferenceReference = BuildTravelPreferenceReference(preferences),
+            CheckoutPreference = BuildCheckoutPreference(checkoutPreference),
             FeatureSuggestions = BuildFeatureSuggestions()
         };
     }
@@ -245,6 +251,25 @@ public sealed class DashboardExperienceService : IDashboardExperienceService
         }
     }
 
+    private async Task<UserCheckoutPreference?> GetCheckoutPreferenceAsync(string userId, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(userId))
+        {
+            return null;
+        }
+
+        try
+        {
+            return await _dbContext.UserCheckoutPreferences
+                .AsNoTracking()
+                .FirstOrDefaultAsync(preference => preference.UserId == userId, cancellationToken);
+        }
+        catch (Exception exception) when (IsMissingCheckoutPreferenceSchema(exception))
+        {
+            return null;
+        }
+    }
+
     private static bool IsMissingBookingsSchema(Exception exception)
     {
         for (var current = exception; current is not null; current = current.InnerException!)
@@ -253,6 +278,21 @@ public sealed class DashboardExperienceService : IDashboardExperienceService
                 current.Message.Contains("bookings", StringComparison.OrdinalIgnoreCase) ||
                 current.Message.Contains("column", StringComparison.OrdinalIgnoreCase) ||
                 current.Message.Contains("relation", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool IsMissingCheckoutPreferenceSchema(Exception exception)
+    {
+        for (var current = exception; current is not null; current = current.InnerException!)
+        {
+            if (current.Message.Contains("UserCheckoutPreferences", StringComparison.OrdinalIgnoreCase) ||
+                current.Message.Contains("relation", StringComparison.OrdinalIgnoreCase) ||
+                current.Message.Contains("table", StringComparison.OrdinalIgnoreCase))
             {
                 return true;
             }
@@ -290,8 +330,12 @@ public sealed class DashboardExperienceService : IDashboardExperienceService
         ];
     }
 
-    private static TravelProfileViewModel BuildTravelProfile(TravelPreferenceRecord? preferences, int seed)
+    private static TravelProfileViewModel BuildTravelProfile(TravelPreferenceRecord? preferences, int seed, UserCheckoutPreference? checkoutPreference)
     {
+        var paymentSummary = string.IsNullOrWhiteSpace(checkoutPreference?.CardLast4)
+            ? "No saved payment reference yet"
+            : $"{checkoutPreference.PaymentMethod} ending {checkoutPreference.CardLast4}";
+
         if (preferences is not null)
         {
             var interestLabels = preferences.Interests
@@ -305,7 +349,7 @@ public sealed class DashboardExperienceService : IDashboardExperienceService
                 FoodPreference = interestLabels.Count == 0 ? "No interests selected yet" : string.Join(", ", interestLabels),
                 PacePreference = $"{preferences.TravelPace} pace, adventure level {preferences.AdventureLevel}/5",
                 Notifications = "Hidden Gem alerts and itinerary changes enabled",
-                PaymentSummary = "Add a payment method when booking persistence is enabled"
+                PaymentSummary = paymentSummary
             };
         }
 
@@ -315,7 +359,49 @@ public sealed class DashboardExperienceService : IDashboardExperienceService
             FoodPreference = "Street food energy, high hygiene standards",
             PacePreference = "Two anchors per day, flexible in-between time",
             Notifications = "Hidden Gem alerts and itinerary changes enabled",
-            PaymentSummary = "Visa ending 4242 ready for Quick-Pay"
+            PaymentSummary = paymentSummary
+        };
+    }
+
+    private static CheckoutPreferenceViewModel BuildCheckoutPreference(UserCheckoutPreference? preference)
+    {
+        if (preference is null)
+        {
+            return new CheckoutPreferenceViewModel();
+        }
+
+        return new CheckoutPreferenceViewModel
+        {
+            FirstName = preference.FirstName,
+            LastName = preference.LastName,
+            AddressLine1 = preference.AddressLine1,
+            City = preference.City,
+            StateProvince = preference.StateProvince,
+            PostalCode = preference.PostalCode,
+            EmailAddress = preference.EmailAddress,
+            CardholderName = preference.CardholderName,
+            CardLast4 = preference.CardLast4,
+            CardExpiry = preference.CardExpiry,
+            PaymentMethod = preference.PaymentMethod
+        };
+    }
+
+    private static TravelPreferenceReferenceViewModel BuildTravelPreferenceReference(TravelPreferenceRecord? preference)
+    {
+        if (preference is null)
+        {
+            return new TravelPreferenceReferenceViewModel();
+        }
+
+        return new TravelPreferenceReferenceViewModel
+        {
+            SelectedPlaces = preference.PlaceInterests,
+            SelectedActivities = preference.ActivityInterests,
+            AdventureLevel = preference.AdventureLevel,
+            TravelPace = preference.TravelPace,
+            BudgetRange = preference.BudgetRange,
+            Notes = preference.Notes,
+            UpdatedAt = preference.UpdatedAt
         };
     }
 

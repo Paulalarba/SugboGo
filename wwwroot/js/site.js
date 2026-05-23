@@ -359,6 +359,11 @@ const initBookingFlow = () => {
     const reviewSummary = wizard.querySelector('[data-review-summary]');
     const paymentSim = wizard.querySelector('[data-payment-sim]');
     const confIdDisplay = wizard.querySelector('[data-conf-id]');
+    const summarySubtotal = wizard.querySelector('[data-summary-subtotal]');
+    const summaryAddons = wizard.querySelector('[data-summary-addons]');
+    const summaryTax = wizard.querySelector('[data-summary-tax]');
+    const summaryTotal = wizard.querySelector('[data-summary-total]');
+    const summaryQuantity = wizard.querySelector('[data-summary-quantity]');
 
     const state = {
         destinationId,
@@ -373,6 +378,19 @@ const initBookingFlow = () => {
         selectedAccommodation: '',
         selectedTransportation: '',
         travelerNotes: '',
+        checkoutFirstName: '',
+        checkoutLastName: '',
+        checkoutAddressLine1: '',
+        checkoutCity: '',
+        checkoutStateProvince: '',
+        checkoutPostalCode: '',
+        checkoutEmailAddress: '',
+        cardholderName: '',
+        cardLast4: '',
+        cardNumber: '',
+        cardExpiry: '',
+        cardCvv: '',
+        saveCheckoutPreference: true,
         basePrice: basePrice,
         addonsPrice: 0,
         taxesAndFees: 0,
@@ -407,6 +425,10 @@ const initBookingFlow = () => {
         if (addonsDisplay) addonsDisplay.textContent = addons.toLocaleString();
         if (taxesDisplay) taxesDisplay.textContent = taxes.toLocaleString();
         if (addonsRow) addonsRow.hidden = addons === 0;
+        if (summarySubtotal) summarySubtotal.textContent = basePrice.toLocaleString();
+        if (summaryAddons) summaryAddons.textContent = addons.toLocaleString();
+        if (summaryTax) summaryTax.textContent = taxes.toLocaleString();
+        if (summaryTotal) summaryTotal.textContent = total.toLocaleString();
     };
 
     const setStep = (stepName) => {
@@ -433,6 +455,7 @@ const initBookingFlow = () => {
         const travelerSelect = wizard.querySelector('select[name="travelerType"]');
         state.travelerType = travelerSelect?.value || wizard.querySelector('input[name="travelerType"]:checked')?.value || 'Solo';
         state.travelerCount = Number(travelerSelect?.selectedOptions?.[0]?.dataset.count || state.travelerCount || '1');
+        if (summaryQuantity) summaryQuantity.textContent = state.travelerCount.toLocaleString();
         state.selectedActivities = [...wizard.querySelectorAll('input[name="activities"]:checked')].map(cb => cb.value);
         state.selectedAccommodation = wizard.querySelector('input[name="accommodation"]:checked')?.value || '';
         state.selectedTransportation = wizard.querySelector('input[name="transportation"]:checked')?.value || '';
@@ -457,6 +480,7 @@ const initBookingFlow = () => {
         if (paymentSim) paymentSim.hidden = false;
 
         state.paymentMethod = method;
+        syncPaymentState();
         renderReview();
 
         // Send to server
@@ -481,6 +505,74 @@ const initBookingFlow = () => {
                     paymentSim.innerHTML = '<p>Payment could not be completed. Please try again.</p>';
                 }
             });
+    };
+
+    // Payment Logic
+    const initPaymentForm = () => {
+        const payBtn = wizard.querySelector('#btn-submit-booking');
+        const cardNum = wizard.querySelector('#card-number');
+        const cardExp = wizard.querySelector('#card-expiry');
+        const cardCvv = wizard.querySelector('#card-cvv');
+        const cardName = wizard.querySelector('#card-name');
+        const requiredFields = [
+            wizard.querySelector('#checkout-first-name'),
+            wizard.querySelector('#checkout-last-name'),
+            wizard.querySelector('#checkout-address'),
+            wizard.querySelector('#checkout-city'),
+            wizard.querySelector('#checkout-state'),
+            wizard.querySelector('#checkout-postal'),
+            wizard.querySelector('#checkout-email')
+        ];
+
+        if (!payBtn) return;
+
+        const validate = () => {
+            const hasSavedCard = (cardNum?.dataset.savedLast4 || '').length === 4;
+            const isNum = hasSavedCard || cardNum.value.replace(/\s/g, '').length === 16;
+            const isExp = /^\d{2}\/\d{2}$/.test(cardExp.value);
+            const isCvv = cardCvv.value.length >= 3;
+            const isName = cardName.value.trim().length > 2;
+            const hasDetails = requiredFields.every(field => field?.value.trim().length > 0);
+
+            payBtn.disabled = !(hasDetails && isNum && isExp && isCvv && isName);
+        };
+
+        cardNum?.addEventListener('input', (e) => {
+            let val = e.target.value.replace(/\D/g, '');
+            val = val.match(/.{1,4}/g)?.join(' ') || val;
+            e.target.value = val;
+            validate();
+        });
+
+        cardExp?.addEventListener('input', (e) => {
+            let val = e.target.value.replace(/\D/g, '');
+            if (val.length > 2) val = val.substring(0, 2) + '/' + val.substring(2, 4);
+            e.target.value = val;
+            validate();
+        });
+
+        [...requiredFields, cardCvv, cardName].forEach(el => el?.addEventListener('input', validate));
+
+        payBtn.addEventListener('click', () => handlePayment('Card'));
+        validate();
+    };
+
+    const syncPaymentState = () => {
+        const cardNumber = wizard.querySelector('#card-number')?.value || '';
+        const savedLast4 = wizard.querySelector('#card-number')?.dataset.savedLast4 || '';
+        state.checkoutFirstName = wizard.querySelector('#checkout-first-name')?.value || '';
+        state.checkoutLastName = wizard.querySelector('#checkout-last-name')?.value || '';
+        state.checkoutAddressLine1 = wizard.querySelector('#checkout-address')?.value || '';
+        state.checkoutCity = wizard.querySelector('#checkout-city')?.value || '';
+        state.checkoutStateProvince = wizard.querySelector('#checkout-state')?.value || '';
+        state.checkoutPostalCode = wizard.querySelector('#checkout-postal')?.value || '';
+        state.checkoutEmailAddress = wizard.querySelector('#checkout-email')?.value || '';
+        state.cardholderName = wizard.querySelector('#card-name')?.value || '';
+        state.cardNumber = cardNumber;
+        state.cardLast4 = cardNumber ? cardNumber.replace(/\D/g, '').slice(-4) : savedLast4;
+        state.cardExpiry = wizard.querySelector('#card-expiry')?.value || '';
+        state.cardCvv = wizard.querySelector('#card-cvv')?.value || '';
+        state.saveCheckoutPreference = wizard.querySelector('#save-checkout-reference')?.checked ?? true;
     };
 
     const escapeHtml = (value) => String(value)
@@ -517,6 +609,7 @@ const initBookingFlow = () => {
         btn.addEventListener('click', () => handlePayment(btn.dataset.payMethod));
     });
 
+    initPaymentForm();
     updatePricing();
 };
 

@@ -96,9 +96,15 @@
                 </label>
             </section>
 
-            <div class="preference-actions">
-                <button class="booking-primary" type="submit">Save preferences</button>
-                <a class="booking-link-btn" asp-controller="Home" asp-action="Index">Not now</a>
+            <div class="preference-actions" style="display: flex; flex-direction: column; align-items: flex-start; gap: 1rem;">
+                <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-size: 0.9rem; color: rgba(255,255,255,0.7);">
+                    <input asp-for="DontShowAgain" type="checkbox" />
+                    <span>Save preferences don't show this again in the user since it is put in profile</span>
+                </label>
+                <div style="display: flex; align-items: center; gap: 1rem; width: 100%;">
+                    <button class="booking-primary" type="submit">Save preferences</button>
+                    <a class="booking-link-btn" asp-controller="Home" asp-action="Index">Not now</a>
+                </div>
             </div>
         </form>
     </div>

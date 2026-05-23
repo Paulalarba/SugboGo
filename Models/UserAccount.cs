@@ -8,6 +8,7 @@ public sealed class UserAccount
     public string PasswordHash { get; set; } = string.Empty;
     public string Role { get; set; } = "Client";
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
+    public bool HasCompletedSurvey { get; set; }
 
     // Navigation properties
     public ICollection<Booking> Bookings { get; set; } = [];

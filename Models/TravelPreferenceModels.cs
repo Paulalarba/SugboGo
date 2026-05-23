@@ -31,6 +31,8 @@ public sealed class TravelPreferenceSurveyViewModel
     [Display(Name = "Notes for the curator")]
     [StringLength(500)]
     public string? Notes { get; set; }
+
+    public bool DontShowAgain { get; set; }
 }
 
 public sealed class TravelPreferenceRecord
