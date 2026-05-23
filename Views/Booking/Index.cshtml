@@ -75,9 +75,20 @@
 
     private bool ImageExists(string relativeUrl)
     {
-        var relativePath = relativeUrl.TrimStart('/').Replace('/', System.IO.Path.DirectorySeparatorChar);
-        var physicalPath = System.IO.Path.Combine(WebHostEnvironment.WebRootPath, relativePath);
-        return System.IO.File.Exists(physicalPath);
+        if (string.IsNullOrWhiteSpace(relativeUrl))
+        {
+            return false;
+        }
+
+        try
+        {
+            var path = relativeUrl.TrimStart('~', '/').Replace('\\', '/');
+            return WebHostEnvironment.WebRootFileProvider.GetFileInfo(path).Exists;
+        }
+        catch
+        {
+            return true;
+        }
     }
 
     private static string CategoryFallbackImage(string? category)
@@ -95,6 +106,7 @@
             "Garden" or "Farm" => "/images/6.jpg",
             "Park" or "Nature Park" => "/images/12.jpg",
             "Theme Park" or "Water Park" or "Adventure" => "/images/23.jpg",
+            "Spring" or "Cave" or "Lake" => "/images/51.jpg",
             "Resort" or "Hotel" => "/images/421.jpg",
             "Market" => "/images/21.jpg",
             "Shopping" or "Urban" => "/images/17.jpg",
@@ -124,13 +136,6 @@
                     <h1>@(requiresDestinationSelection ? "Choose your Cebu destination" : Model.Data.DestinationName)</h1>
                     <p>@(requiresDestinationSelection ? "Pick a destination first, then customize your date, stay, transport, activities, and payment." : Model.Data.Description)</p>
 
-                    @if (requiresDestinationSelection)
-                    {
-                        <div style="margin-top: 20px; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.2);">
-                            <img src="/images/hero-bg.jpg" alt="Cebu Adventure" style="width: 100%; height: 250px; object-fit: cover;" />
-                        </div>
-                    }
-
                     <div class="bundle-switcher">
                         <a href="/Booking/ResolveAiDestination" class="bundle-btn @(Model.BookingType == "SystemSelected" ? "is-active" : "")">
                             <strong>System-Selected</strong>
@@ -142,7 +147,16 @@
                         </a>
                     </div>
                 </div>
-                @if (!requiresDestinationSelection)
+                @if (requiresDestinationSelection)
+                {
+                <aside class="booking-summary booking-summary--manual" aria-label="Manual explorer preview">
+                    <img class="booking-summary__image" src="@bookingImageUrl" alt="Cebu destination preview" loading="eager" onerror="this.onerror=null;this.src='@Url.Content("/images/hero-bg.jpg")';" />
+                    <span>Manual Explorer</span>
+                    <strong>Browse Cebu Gems</strong>
+                    <small>Pick any destination below to continue booking.</small>
+                </aside>
+                }
+                else
                 {
                 <aside class="booking-summary" aria-label="Destination overview">
                     <img class="booking-summary__image" src="@bookingImageUrl" alt="@Model.Data.DestinationName" loading="eager" onerror="this.onerror=null;this.src='@Url.Content("/images/hero-bg.jpg")';" />

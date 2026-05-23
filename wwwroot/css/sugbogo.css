@@ -5621,7 +5621,8 @@ button {
 }
 
 .booking-flow--choose-destination .booking-hero__grid {
-    grid-template-columns: minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr) minmax(260px, 380px);
+    align-items: center;
 }
 
 .booking-flow--choose-destination .booking-hero h1 {
@@ -5635,6 +5636,20 @@ button {
 
 .booking-flow--choose-destination .bundle-switcher {
     display: none;
+}
+
+.booking-summary--manual {
+    align-self: stretch;
+}
+
+.booking-summary--manual .booking-summary__image {
+    min-height: 250px;
+}
+
+@media (max-width: 980px) {
+    .booking-flow--choose-destination .booking-hero__grid {
+        grid-template-columns: 1fr;
+    }
 }
 
 .manual-destination-panel {
