@@ -63,6 +63,46 @@ public sealed class DashboardExperienceService : IDashboardExperienceService
         };
     }
 
+    public async Task<DashboardViewModel> BuildForProfileAsync(ClaimsPrincipal user, CancellationToken cancellationToken = default)
+    {
+        var fullName = user.FindFirstValue(ClaimTypes.Name) ?? "Traveler";
+        var email = user.FindFirstValue(ClaimTypes.Email) ?? string.Empty;
+        var userId = user.FindFirstValue(ClaimTypes.NameIdentifier) ?? string.Empty;
+        var firstName = fullName.Split(' ', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? "Traveler";
+        var seed = Math.Abs(email.GetHashCode());
+        var preferences = string.IsNullOrWhiteSpace(userId)
+            ? null
+            : await _preferenceStore.FindLatestByUserIdAsync(userId, cancellationToken);
+        var posts = string.IsNullOrWhiteSpace(userId)
+            ? []
+            : await _postStore.GetByUserIdAsync(userId, cancellationToken);
+        var savedGems = string.IsNullOrWhiteSpace(userId)
+            ? []
+            : await _savedGemStore.GetByUserIdAsync(userId, cancellationToken);
+        var bookings = await GetBookingsForUserAsync(userId, cancellationToken);
+
+        return new DashboardViewModel
+        {
+            FirstName = firstName,
+            UserInitial = firstName[..1].ToUpperInvariant(),
+            Greeting = BuildGreeting(firstName),
+            ActiveTrip = BuildActiveTrip(firstName, seed, bookings.FirstOrDefault()),
+            SocialFeed = BuildSocialFeed(posts, preferences),
+            VibeTags = BuildVibeTags(preferences),
+            CuratedGems = BuildCuratedGems(seed),
+            Bookings = BuildBookings(bookings),
+            SavedGems = savedGems.Select(gem => new SavedGemViewModel
+            {
+                Id = gem.Id,
+                Title = gem.Title,
+                Note = gem.Note
+            }).ToList(),
+            PastAdventures = BuildPastAdventures(seed),
+            TravelProfile = BuildTravelProfile(preferences, seed),
+            FeatureSuggestions = BuildFeatureSuggestions()
+        };
+    }
+
     private static string BuildGreeting(string firstName)
     {
         var hour = DateTime.Now.Hour;

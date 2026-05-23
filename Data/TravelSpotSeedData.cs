@@ -47,7 +47,8 @@ public static class TravelSpotSeedData
         new() { Id = 63, Name = "Kanlaob River Falls", Location = "Alegria", Description = "River canyon waterfall route used for trekking and water activities.", Category = "Waterfall", Region = "South Cebu" },
         new() { Id = 64, Name = "Bugnawan Falls", Location = "South Cebu", Description = "Local waterfall stop for swimming and nature trips.", Category = "Waterfall", Region = "South Cebu" },
         new() { Id = 65, Name = "Kampael Falls", Location = "South Cebu", Description = "Scenic local waterfall for adventure itineraries.", Category = "Waterfall", Region = "South Cebu" },
-        new() { Id = 66, Name = "Bucawe Falls", Location = "South Cebu", Description = "Hidden waterfall suited for local-guided routes.", Category = "Waterfall", Region = "South Cebu" },
+        //no pics for 66 - 68
+            new() { Id = 66, Name = "Bucawe Falls", Location = "South Cebu", Description = "Hidden waterfall suited for local-guided routes.", Category = "Waterfall", Region = "South Cebu" },
         new() { Id = 67, Name = "Montpeller Falls", Location = "Alegria", Description = "Waterfall and natural pool experience in South Cebu.", Category = "Waterfall", Region = "South Cebu" },
         new() { Id = 68, Name = "Dau Falls", Location = "Samboan", Description = "Tall waterfall reached by a scenic river trek.", Category = "Waterfall", Region = "South Cebu" },
 
@@ -104,7 +105,8 @@ public static class TravelSpotSeedData
         new() { Id = 420, Name = "Mist Mountain Resort", Location = "Cebu", Description = "Eco-tourism resort in Taptap within the Central Cebu Protected Landscape featuring an infinity pool, forest camping, nature trails, and mountain views.", Category = "Resort", Region = "Cebu" },
         new() { Id = 421, Name = "Waterfront Hotel", Location = "Cebu City", Description = "Landmark five-star hotel and casino complex on Salinas Drive in Lahug, offering luxury accommodations, multiple dining outlets, and a full-service casino.", Category = "Hotel", Region = "Cebu City" },
         new() { Id = 422, Name = "Top of Cebu", Location = "Cebu", Description = "Filipino restaurant and viewpoint in Busay at 2,000 feet elevation, serving contemporary Filipino dishes alongside panoramic views of the Cebu skyline.", Category = "Viewpoint", Region = "Cebu" },
-        new() { Id = 423, Name = "Lantaw Native Restaurant", Location = "Cordova", Description = "Floating native restaurant on stilts above the sea in Barangay Day-as, Cordova, serving fresh Filipino seafood with views of the Mactan Channel at sunset.", Category = "Restaurant", Region = "Mactan" },
+        //stopped saving here
+            new() { Id = 423, Name = "Lantaw Native Restaurant", Location = "Cordova", Description = "Floating native restaurant on stilts above the sea in Barangay Day-as, Cordova, serving fresh Filipino seafood with views of the Mactan Channel at sunset.", Category = "Restaurant", Region = "Mactan" },
         new() { Id = 424, Name = "Kabang Falls (Budlaan)", Location = "Cebu City", Description = "Scenic waterfall in Barangay Budlaan accessible via a river trek, popular for swimming and hiking in the Cebu City highlands.", Category = "Waterfall", Region = "Cebu City" },
         new() { Id = 425, Name = "Himbabawod Falls (Bonbon)", Location = "Cebu", Description = "Hidden tiered waterfall in Barangay Bonbon nestled in the Transcentral highlands, reached by a short forest hike through unspoiled terrain.", Category = "Waterfall", Region = "Cebu" },
         new() { Id = 426, Name = "Busay Lut-od Falls", Location = "Cebu", Description = "Natural waterfall in the Busay highlands along the Transcentral Highway corridor, a local off-the-beaten-path escape in the Cebu City mountains.", Category = "Waterfall", Region = "Cebu" },

@@ -1,0 +1,178 @@
+﻿@model DashboardViewModel
+
+@{
+    ViewData["Title"] = "Your Profile";
+}
+
+<section class="feed-page" data-profile-page>
+    <header class="feed-topbar lp-reveal">
+        <div>
+            <p class="lp-kicker">SugboGo Explorer</p>
+            <h1>Welcome, @Model.FirstName</h1>
+            <p>Manage your account, view your shared stories, and track your curated Cebu gems.</p>
+        </div>
+        <div class="feed-topbar__actions">
+            <a class="feed-profile-chip is-active" href="/Dashboard/Profile">@Model.UserInitial</a>
+        </div>
+    </header>
+
+    <div class="feed-shell">
+        <aside class="feed-sidebar feed-sidebar--left lp-reveal">
+            <article class="feed-profile-card">
+                <div class="feed-avatar feed-avatar--large">@Model.UserInitial</div>
+                <h2>@Model.FirstName</h2>
+                <p>@Model.TravelProfile.StayPreference</p>
+                <div class="feed-profile-stats">
+                    <span><strong>@Model.SocialFeed.Count</strong> posts</span>
+                    <span><strong>@Model.SavedGems.Count</strong> saved</span>
+                </div>
+            </article>
+
+            <article class="feed-panel">
+                <h2>Quick Actions</h2>
+                <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                    <a href="/Booking/Survey" class="sg-btn sg-btn--outline sg-btn--sm" style="text-decoration: none; text-align: center;">Edit Travel Interests</a>
+                    <a href="/Dashboard" class="sg-btn sg-btn--primary sg-btn--sm" style="text-decoration: none; text-align: center;">Back to Feed</a>
+                </div>
+            </article>
+
+            <article class="feed-panel">
+                <h2>Cebu Status</h2>
+                <ul class="feed-capability-list">
+                    <li><span></span> Verified Explorer</li>
+                    <li><span></span> @Model.SocialFeed.Count Shared Stories</li>
+                    <li><span></span> @Model.Bookings.Count Booked Adventures</li>
+                </ul>
+            </article>
+        </aside>
+
+        <main class="feed-main">
+            @if (TempData["ProfileMessage"] is string message)
+            {
+                <div class="feed-panel feed-notice">@message</div>
+            }
+            @if (TempData["ProfileError"] is string error)
+            {
+                <div class="feed-panel feed-notice feed-notice--error">@error</div>
+            }
+
+            <section class="feed-panel lp-reveal">
+                <h2>Edit Profile Info</h2>
+                <form asp-controller="Dashboard" asp-action="UpdateProfile" method="post" class="feed-form" style="display: block;">
+                    @Html.AntiForgeryToken()
+                    <div class="feed-form__grid">
+                        <label>
+                            <span>Full Name</span>
+                            <input name="fullName" type="text" value="@User.Identity.Name" required />
+                        </label>
+                        <label>
+                            <span>Email Address</span>
+                            <input type="email" value="@User.FindFirstValue(System.Security.Claims.ClaimTypes.Email)" disabled style="background: rgba(255,255,255,0.05); cursor: not-allowed;" />
+                        </label>
+                    </div>
+                    <div class="feed-form__actions" style="margin-top: 1rem;">
+                        <button type="submit" class="sg-btn sg-btn--primary">Save Changes</button>
+                    </div>
+                </form>
+            </section>
+
+            <section class="feed-list lp-reveal">
+                <div class="feed-section-header" style="margin-bottom: 1.5rem;">
+                    <h2>Your Shared Stories</h2>
+                    <p>Posts you've shared with the SugboGo community.</p>
+                </div>
+
+                @if (!Model.SocialFeed.Any())
+                {
+                    <article class="feed-panel feed-empty-state">
+                        <h2>No stories yet</h2>
+                        <p>Your Cebu destination posts will appear here. Head over to the dashboard to share your first experience!</p>
+                        <a href="/Dashboard" class="sg-btn sg-btn--outline sg-btn--sm" style="margin-top: 1rem; text-decoration: none;">Go to Dashboard</a>
+                    </article>
+                }
+
+                @foreach (var post in Model.SocialFeed)
+                {
+                    <article class="feed-post" data-feed-post data-post-id="@post.Id">
+                        <header class="feed-post__header">
+                            <div class="feed-avatar">@post.AuthorInitial</div>
+                            <div>
+                                <strong>@post.AuthorName</strong>
+                                <span>@post.AuthorRole · @post.Timestamp</span>
+                            </div>
+                        </header>
+
+                        <div class="feed-post__body">
+                            <div class="feed-post__title-row">
+                                <div>
+                                    <h2>@post.DestinationName</h2>
+                                    <p>@post.Location</p>
+                                </div>
+                            </div>
+                            <p>@post.Description</p>
+                            <p class="feed-caption">@post.Caption</p>
+                            <div class="feed-tags">
+                                @foreach (var tag in post.Tags)
+                                {
+                                    <span>#@tag</span>
+                                }
+                            </div>
+                        </div>
+
+                        <img class="feed-post__image" src="@post.ImageUrl" alt="@post.DestinationName" />
+
+                        <footer class="feed-engagement">
+                            <div class="feed-counts">
+                                <span><b>@post.Likes</b> likes</span>
+                                <span><b>@post.Comments</b> comments</span>
+                            </div>
+                        </footer>
+                    </article>
+                }
+            </section>
+        </main>
+
+        <aside class="feed-sidebar feed-sidebar--right lp-reveal">
+            <article class="feed-panel">
+                <h2>Saved Gems</h2>
+                @if (Model.SavedGems.Any())
+                {
+                    <ul class="feed-saved-list">
+                        @foreach (var gem in Model.SavedGems)
+                        {
+                            <li>
+                                <div>
+                                    <strong>@gem.Title</strong>
+                                    <span>@gem.Note</span>
+                                </div>
+                            </li>
+                        }
+                    </ul>
+                }
+                else
+                {
+                    <p>Your saved Cebu gems will appear here.</p>
+                }
+            </article>
+
+            <article class="feed-panel">
+                <h2>Travel Preferences</h2>
+                <div class="feed-profile-details">
+                    <div style="margin-bottom: 1rem;">
+                        <strong>Vibe</strong>
+                        <p>@Model.TravelProfile.StayPreference</p>
+                    </div>
+                    <div style="margin-bottom: 1rem;">
+                        <strong>Interests</strong>
+                        <p>@Model.TravelProfile.FoodPreference</p>
+                    </div>
+                    <div style="margin-bottom: 1rem;">
+                        <strong>Pace</strong>
+                        <p>@Model.TravelProfile.PacePreference</p>
+                    </div>
+                </div>
+                <a href="/Booking/Survey" class="sg-btn sg-btn--outline sg-btn--sm" style="width: 100%; text-decoration: none; display: block; text-align: center; margin-top: 1rem;">Update Preferences</a>
+            </article>
+        </aside>
+    </div>
+</section>

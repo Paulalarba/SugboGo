@@ -27,13 +27,19 @@ public sealed class PostgresUserAccountStore : IUserAccountStore
             .FirstOrDefaultAsync(user => user.Email == normalizedEmail, cancellationToken);
     }
 
+    public async Task<UserAccount?> FindByIdAsync(string id, CancellationToken cancellationToken = default)
+    {
+        return await _dbContext.Users
+            .FirstOrDefaultAsync(user => user.Id == id, cancellationToken);
+    }
+
     public async Task<UserAccount> CreateAsync(UserAccount account, CancellationToken cancellationToken = default)
     {
         account.Email = NormalizeEmail(account.Email);
         account.CreatedAt = DateTimeOffset.UtcNow;
 
         _dbContext.Users.Add(account);
-        
+
         try
         {
             await _dbContext.SaveChangesAsync(cancellationToken);
@@ -47,6 +53,12 @@ public sealed class PostgresUserAccountStore : IUserAccountStore
         }
 
         return account;
+    }
+
+    public async Task UpdateAsync(UserAccount user, CancellationToken cancellationToken = default)
+    {
+        _dbContext.Users.Update(user);
+        await _dbContext.SaveChangesAsync(cancellationToken);
     }
 
     private static string NormalizeEmail(string email) => email.Trim().ToLowerInvariant();

@@ -79,6 +79,30 @@ public sealed class SupabaseUserAccountStore : IUserAccountStore
             };
     }
 
+    public async Task<UserAccount?> FindByIdAsync(string id, CancellationToken cancellationToken = default)
+    {
+        var encodedId = Uri.EscapeDataString(id);
+        using var response = await _httpClient.GetAsync($"{_options.UsersTable}?id=eq.{encodedId}&select=id,email,full_name,password_hash,role,created_at&limit=1", cancellationToken);
+
+        response.EnsureSuccessStatusCode();
+
+        await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
+        var rows = await JsonSerializer.DeserializeAsync<List<SupabaseUserRow>>(stream, _jsonOptions, cancellationToken) ?? [];
+        var row = rows.FirstOrDefault();
+
+        return row is null
+            ? null
+            : new UserAccount
+            {
+                Id = row.Id,
+                Email = row.Email,
+                FullName = row.FullName,
+                PasswordHash = row.PasswordHash,
+                Role = AccountRoles.Normalize(row.Role),
+                CreatedAt = row.CreatedAt
+            };
+    }
+
     public async Task<UserAccount> CreateAsync(UserAccount account, CancellationToken cancellationToken = default)
     {
         account.Email = account.Email.Trim().ToLowerInvariant();
@@ -97,6 +121,23 @@ public sealed class SupabaseUserAccountStore : IUserAccountStore
         response.EnsureSuccessStatusCode();
 
         return account;
+    }
+
+    public async Task UpdateAsync(UserAccount user, CancellationToken cancellationToken = default)
+    {
+        var row = new SupabaseUserRow
+        {
+            Id = user.Id,
+            Email = user.Email,
+            FullName = user.FullName,
+            PasswordHash = user.PasswordHash,
+            Role = AccountRoles.Normalize(user.Role),
+            CreatedAt = user.CreatedAt
+        };
+
+        var encodedId = Uri.EscapeDataString(user.Id);
+        using var response = await _httpClient.PatchAsJsonAsync($"{_options.UsersTable}?id=eq.{encodedId}", row, _jsonOptions, cancellationToken);
+        response.EnsureSuccessStatusCode();
     }
 
     private sealed class SupabaseUserRow

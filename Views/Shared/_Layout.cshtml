@@ -14,6 +14,7 @@
     
     <!-- Main Stylesheet (sugbogo.css only - no site.css needed) -->
     <link rel="stylesheet" href="~/css/sugbogo.css" asp-append-version="true" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" />
 </head>
 
 <body data-authenticated="@User.Identity?.IsAuthenticated.ToString().ToLowerInvariant()">
@@ -37,7 +38,7 @@
                 <nav class="sg-nav__links">
                     <a href="/Booking/Survey">Booking</a>
                     <a href="/Dashboard">Dashboard</a>
-                    <a href="/Booking/Survey">Profile</a>
+                    <a href="/Dashboard/Profile">Profile</a>
                 </nav>
             }
             else
@@ -59,11 +60,27 @@
             <div class="sg-nav__actions">
                 @if (User.Identity?.IsAuthenticated == true)
                 {
-                    <span class="sg-nav__user">Hi, @(User.Identity.Name?.Split(' ')[0] ?? "User")</span>
-                    <form asp-controller="Account" asp-action="Logout" method="post" class="sg-nav__logout" style="display:inline;">
-                        @Html.AntiForgeryToken()
-                        <button class="sg-btn sg-btn--outline sg-btn--sm" type="submit">Sign out</button>
-                    </form>
+                    <div class="sg-nav__user-dropdown" style="position: relative; display: flex; align-items: center; gap: 1rem;">
+                        <span class="sg-nav__user">Hi, @(User.Identity.Name?.Split(' ')[0] ?? "User")</span>
+                        <div style="position: relative;">
+                            <div class="feed-profile-chip" id="profileMenuTrigger" style="cursor: pointer; width: 32px; height: 32px; font-size: 0.8rem;">
+                                @(User.Identity.Name?[..1].ToUpperInvariant() ?? "U")
+                            </div>
+                            <div class="profile-dropdown-card" id="profileDropdownMenu" style="top: 40px; right: 0; width: 180px;">
+                                <div class="dropdown-user-info">
+                                    <strong>@User.Identity.Name</strong>
+                                    <span>@User.FindFirstValue(ClaimTypes.Email)</span>
+                                </div>
+                                <hr style="border: 0; border-top: 1px solid var(--admin-border); margin: 8px 0;" />
+                                <a href="/Dashboard/Profile"><i class="bi bi-person"></i> My Profile</a>
+                                <a href="/Booking/Survey"><i class="bi bi-sliders"></i> Preferences</a>
+                                <form asp-controller="Account" asp-action="Logout" method="post" style="margin: 0; padding: 0;">
+                                    @Html.AntiForgeryToken()
+                                    <button type="submit" class="dropdown-logout-btn"><i class="bi bi-box-arrow-right"></i> Sign Out</button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
                 }
                 else
                 {
