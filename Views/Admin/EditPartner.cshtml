@@ -1,0 +1,132 @@
+@model SugboGo.Models.PartnerAdminViewModel
+@{
+    Layout = "_AdminLayout";
+}
+
+<style>
+    .form-container {
+        background: white;
+        border: 1px solid var(--admin-border);
+        border-radius: 12px;
+        padding: 32px;
+        max-width: 680px;
+        box-shadow: 0 4px 14px rgba(29, 42, 38, 0.03);
+    }
+    .form-group {
+        margin-bottom: 24px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+    .form-label {
+        font-size: 0.85rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: var(--admin-text-main);
+    }
+    .form-input {
+        background: var(--admin-bg);
+        border: 1px solid var(--admin-border);
+        padding: 12px 16px;
+        border-radius: 8px;
+        font-family: 'DM Sans', sans-serif;
+        font-size: 0.95rem;
+        color: var(--admin-text-main);
+        outline: none;
+        transition: 0.2s;
+    }
+    .form-input:focus {
+        border-color: var(--admin-accent);
+        background: white;
+    }
+    .form-actions-row {
+        display: flex;
+        gap: 16px;
+        margin-top: 32px;
+        border-top: 1px solid var(--admin-border);
+        padding-top: 24px;
+    }
+    .btn-form {
+        padding: 12px 24px;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 0.9rem;
+        cursor: pointer;
+        font-family: 'DM Sans', sans-serif;
+        transition: 0.2s;
+    }
+    .btn-form--save { background: var(--admin-accent); color: white; border: none; }
+    .btn-form--save:hover { opacity: 0.9; }
+    
+    .btn-form--cancel { 
+        background: transparent; 
+        border: 1px solid var(--admin-border); 
+        color: var(--admin-text-muted); 
+        text-decoration: none; 
+        display: inline-flex; 
+        align-items: center; 
+        justify-content: center; 
+    }
+    .btn-form--cancel:hover { background: var(--admin-surface); color: var(--admin-text-main); }
+</style>
+
+<div style="margin-bottom: 32px;">
+    <h1 style="margin: 0; font-family: 'Cormorant Garamond', serif; font-size: 2.2rem; font-weight: 700;">Edit Vendor Partner</h1>
+    <p style="margin: 4px 0 0 0; color: var(--admin-text-muted);">Update registration details for @Model.Name in the platform logistics grid.</p>
+</div>
+
+<div class="form-container">
+    <form asp-controller="Admin" asp-action="EditPartner" asp-route-id="@Model.Id" method="post">
+        @Html.AntiForgeryToken()
+
+        <div class="form-group">
+            <label class="form-label" for="Name">Partner Entity / Company Name</label>
+            <input type="text" id="Name" name="Name" class="form-input" value="@Model.Name" required />
+        </div>
+
+        <div class="form-group">
+            <label class="form-label" for="UserId">Linked Account User ID (for Login)</label>
+            <input type="text" id="UserId" name="UserId" class="form-input" value="@Model.UserId" placeholder="Paste User GUID here" />
+            <small style="color: var(--admin-text-muted);">Link this to a User Account with the 'Partner' role to enable dashboard access.</small>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+            <div class="form-group">
+                <label class="form-label" for="Type">Service Category Type</label>
+                <select id="Type" name="Type" class="form-input" required>
+                    <option value="">Select Specialty...</option>
+                    <option value="Transport" selected="@(Model.Type == "Transport" ? "selected" : null)">Transport (Van/Sedan)</option>
+                    <option value="Maritime" selected="@(Model.Type == "Maritime" ? "selected" : null)">Maritime (Boats/Ferry)</option>
+                    <option value="Lodging" selected="@(Model.Type == "Lodging" ? "selected" : null)">Lodging (Boutique Stay)</option>
+                    <option value="Guiding" selected="@(Model.Type == "Guiding" ? "selected" : null)">Guiding (Tour Guides)</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="Commission">Commission Model Format</label>
+                <input type="text" id="Commission" name="Commission" class="form-input" value="@Model.Commission" required />
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label" for="Contact">Contact Registry (Phone / Email)</label>
+            <input type="text" id="Contact" name="Contact" class="form-input" value="@Model.Contact" required />
+        </div>
+
+        <div class="form-group">
+            <label class="form-label" for="Status">Affiliation Status</label>
+            <select id="Status" name="Status" class="form-input" required>
+                <option value="Pending" selected="@(Model.Status == "Pending" ? "selected" : null)">Pending Evaluation</option>
+                <option value="Confirmed" selected="@(Model.Status == "Confirmed" ? "selected" : null)">Active Verified Vendor</option>
+                <option value="Excellent" selected="@(Model.Status == "Excellent" ? "selected" : null)">Excellent</option>
+                <option value="Watch weather" selected="@(Model.Status == "Watch weather" ? "selected" : null)">Watch weather</option>
+            </select>
+        </div>
+
+        <div class="form-actions-row">
+            <button type="submit" class="btn-form btn-form--save">Update Registration</button>
+            <a asp-controller="Admin" asp-action="Partners" class="btn-form btn-form--cancel">Cancel</a>
+        </div>
+    </form>
+</div>

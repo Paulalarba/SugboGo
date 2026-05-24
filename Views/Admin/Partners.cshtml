@@ -91,7 +91,6 @@
             {
                 @foreach (var partner in Model.Partners)
                 {
-                    int simulatedId = Math.Abs(partner.Name.GetHashCode() % 100000);
                     <tr>
                         <td style="font-weight: 600;">@partner.Name</td>
                         <td><span style="border: 1px solid var(--admin-border); padding: 4px 8px; border-radius: 6px; font-size: 0.8rem;">@partner.Type</span></td>
@@ -100,9 +99,9 @@
                         <td><span class="status-pill @StatusClass(partner.Status)">@partner.Status</span></td>
                         <td>
                             <div class="table-actions">
-                                <a asp-controller="Admin" asp-action="EditPartner" asp-route-id="@simulatedId" class="lnk-edit">Edit</a>
+                                <a asp-controller="Admin" asp-action="EditPartner" asp-route-id="@partner.Id" class="lnk-edit">Edit</a>
                                 
-                                <form asp-controller="Admin" asp-action="DeletePartner" asp-route-id="@simulatedId" method="post" style="margin: 0; display: inline;" onsubmit="return confirm('Are you sure you want to terminate this partner vendor agreement? This might affect live itineraries.');">
+                                <form asp-controller="Admin" asp-action="DeletePartner" asp-route-id="@partner.Id" method="post" style="margin: 0; display: inline;" onsubmit="return confirm('Are you sure you want to terminate this partner vendor agreement? This might affect live itineraries.');">
                                     @Html.AntiForgeryToken()
                                     <button type="submit" class="btn-delete-inline">Delete</button>
                                 </form>

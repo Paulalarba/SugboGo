@@ -1,0 +1,113 @@
+@model SugboGo.Models.PartnerDashboardViewModel
+@{
+    Layout = "_PartnerLayout";
+    string StatusClass(string status) => string.IsNullOrWhiteSpace(status) ? "status--pending" : $"status--{status.Trim().ToLowerInvariant().Replace(" ", "-")}";
+}
+
+<style>
+    .kpi-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 24px;
+        margin-bottom: 40px;
+    }
+    .kpi-card {
+        background: white;
+        border: 1px solid var(--admin-border);
+        border-radius: 12px;
+        padding: 24px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.02);
+    }
+    .kpi-label { font-size: 0.85rem; font-weight: 600; color: var(--admin-text-muted); text-transform: uppercase; letter-spacing: 1px; }
+    .kpi-value { font-size: 2rem; font-weight: 700; margin: 12px 0; font-family: 'Cormorant Garamond', serif; }
+    
+    .dashboard-grid {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 32px;
+    }
+</style>
+
+<div style="margin-bottom: 32px;">
+    <h1 style="margin: 0; font-family: 'Cormorant Garamond', serif; font-size: 2.2rem; font-weight: 700;">
+        Maayong Buntag, @Model.Profile.Name
+    </h1>
+    <p style="margin: 4px 0 0 0; color: var(--admin-text-muted);">Here is your operations summary for today.</p>
+</div>
+
+<div class="kpi-grid">
+    <div class="kpi-card">
+        <div class="kpi-label">Active Trips</div>
+        <div class="kpi-value">@Model.ActiveTrips.Count</div>
+        <div style="font-size: 0.85rem; color: #1A73E8; font-weight: 600;">Currently in progress</div>
+    </div>
+    <div class="kpi-card">
+        <div class="kpi-label">Upcoming Bookings</div>
+        <div class="kpi-value">@Model.UpcomingBookings.Count</div>
+        <div style="font-size: 0.85rem; color: var(--admin-warning); font-weight: 600;">Awaiting execution</div>
+    </div>
+    <div class="kpi-card">
+        <div class="kpi-label">Total Revenue</div>
+        <div class="kpi-value">₱@Model.TotalRevenue.ToString("N0")</div>
+        <div style="font-size: 0.85rem; color: var(--admin-success); font-weight: 600;">Based on @Model.TotalTrips total trips</div>
+    </div>
+</div>
+
+<div class="dashboard-grid">
+    <div class="main-column">
+        <section class="admin-section">
+            <div class="section-header">
+                <h2 style="margin: 0; font-size: 1.1rem; font-weight: 600;">Active & Immediate Departures</h2>
+            </div>
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>Traveler</th>
+                        <th>Destination</th>
+                        <th>Travel Date</th>
+                        <th>Status</th>
+                        <th style="text-align: right;">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (!Model.ActiveTrips.Any() && !Model.UpcomingBookings.Take(3).Any())
+                    {
+                        <tr>
+                            <td colspan="5" style="text-align: center; padding: 40px; color: var(--admin-text-muted);">
+                                No immediate trips assigned to your fleet.
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        @foreach (var booking in Model.ActiveTrips.Concat(Model.UpcomingBookings.Take(3)))
+                        {
+                            <tr>
+                                <td style="font-weight: 600;">@booking.UserName</td>
+                                <td>@booking.Destination</td>
+                                <td style="color: var(--admin-text-muted);">@booking.Date</td>
+                                <td><span class="status-pill @StatusClass(booking.Status)">@booking.Status</span></td>
+                                <td style="text-align: right;">
+                                    <a asp-action="BookingDetails" asp-route-id="@booking.Id" style="color: var(--admin-accent); text-decoration: none; font-weight: 600; font-size: 0.85rem;">Manage ➔</a>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </section>
+    </div>
+
+    <div class="side-column">
+        <div class="kpi-card" style="background: var(--admin-accent); color: white;">
+            <div class="kpi-label" style="color: rgba(255,255,255,0.7);">Your Service ID</div>
+            <div style="font-family: monospace; font-size: 1.1rem; margin-top: 8px;">#@Model.Profile.Id.Substring(0, 8).ToUpper()</div>
+            <hr style="border: 0; border-top: 1px solid rgba(255,255,255,0.1); margin: 16px 0;" />
+            <div style="font-size: 0.9rem;">
+                <strong>Type:</strong> @Model.Profile.Type<br/>
+                <strong>Commission:</strong> @Model.Profile.Commission<br/>
+                <strong>Last Audit:</strong> @Model.Profile.LastAudit
+            </div>
+        </div>
+    </div>
+</div>

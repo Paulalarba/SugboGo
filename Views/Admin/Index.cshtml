@@ -286,23 +286,25 @@
             {
                 foreach (var booking in Model.Bookings.Take(5))
                 {
-                    <div class="activity-card">
-                        <div class="activity-icon">📍</div>
-                        <div class="activity-details">
-                            <h4>@booking.UserName booked @booking.Destination</h4>
-                            <p>
-                                <strong>Setup:</strong> @(booking.SelectedActivities.Any() ? string.Join(", ", booking.SelectedActivities) : "No add-ons") 
-                                &middot; <strong>Transport:</strong> @booking.SelectedTransport
-                            </p>
-                            <p>
-                                <small>Paid via @booking.PaymentMethod &middot; @booking.TravelerType (@booking.TravelerCount travelers)</small>
-                            </p>
+                    <a asp-action="BookingDetails" asp-route-id="@booking.Id" style="text-decoration: none; display: block; margin-bottom: 16px;">
+                        <div class="activity-card">
+                            <div class="activity-icon">📍</div>
+                            <div class="activity-details">
+                                <h4>@booking.UserName booked @booking.Destination</h4>
+                                <p>
+                                    <strong>Setup:</strong> @(booking.SelectedActivities.Any() ? string.Join(", ", booking.SelectedActivities) : "No add-ons") 
+                                    &middot; <strong>Transport:</strong> @booking.SelectedTransport
+                                </p>
+                                <p>
+                                    <small>Paid via @booking.PaymentMethod &middot; @booking.TravelerType (@booking.TravelerCount travelers)</small>
+                                </p>
+                            </div>
+                            <div class="activity-meta">
+                                <strong>₱@booking.Amount.ToString("N0")</strong>
+                                <span class="status-pill @(booking.Status.ToLower() == "pending" ? "status--pending" : "status--confirmed")">@booking.Status</span>
+                            </div>
                         </div>
-                        <div class="activity-meta">
-                            <strong>₱@booking.Amount.ToString("N0")</strong>
-                            <span class="status-badge status-badge--confirmed">@booking.Status</span>
-                        </div>
-                    </div>
+                    </a>
                 }
             }
             else

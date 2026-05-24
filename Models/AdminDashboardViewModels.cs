@@ -18,15 +18,23 @@ public sealed class BookingAdminViewModel
 {
     public string Id { get; set; } = string.Empty;
     public string UserName { get; set; } = string.Empty;
+    public string UserEmail { get; set; } = string.Empty;
     public string Destination { get; set; } = string.Empty;
     public string Date { get; set; } = string.Empty;
     public string Status { get; set; } = string.Empty;
     public decimal Amount { get; set; }
     public List<string> SelectedActivities { get; set; } = [];
     public string SelectedTransport { get; set; } = string.Empty;
+    public string SelectedAccommodation { get; set; } = string.Empty;
     public string PaymentMethod { get; set; } = string.Empty;
     public string TravelerType { get; set; } = string.Empty;
     public int TravelerCount { get; set; }
+    public string TravelerNotes { get; set; } = string.Empty;
+    public string AdminNotes { get; set; } = string.Empty;
+    public string AssignedPartnerName { get; set; } = string.Empty;
+    public string AssignedPartnerId { get; set; } = string.Empty;
+    public string QrCode { get; set; } = string.Empty;
+    public DateTime CreatedAt { get; set; }
 }
 
 public sealed class AdminKpiViewModel
@@ -54,6 +62,7 @@ public sealed class UrgentAlertViewModel
 
 public sealed class GemAdminViewModel
 {
+    public string Id { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
     public string Category { get; set; } = string.Empty;
     public int FlashpackerScore { get; set; }
@@ -99,6 +108,8 @@ public sealed class FlashpackerProfileViewModel
 
 public sealed class PartnerAdminViewModel
 {
+    public string Id { get; set; } = string.Empty;
+    public string? UserId { get; set; }
     public string Name { get; set; } = string.Empty;
     public string Type { get; set; } = string.Empty;
     public string Contact { get; set; } = string.Empty;
@@ -113,4 +124,14 @@ public sealed class CollaborationSuggestionViewModel
     public string Spot { get; set; } = string.Empty;
     public string Reason { get; set; } = string.Empty;
     public string ApprovalStatus { get; set; } = string.Empty;
+}
+
+public sealed class PartnerDashboardViewModel
+{
+    public PartnerAdminViewModel Profile { get; set; } = new();
+    public List<BookingAdminViewModel> ActiveTrips { get; set; } = [];
+    public List<BookingAdminViewModel> UpcomingBookings { get; set; } = [];
+    public List<BookingAdminViewModel> CompletedTrips { get; set; } = [];
+    public decimal TotalRevenue { get; set; }
+    public int TotalTrips { get; set; }
 }

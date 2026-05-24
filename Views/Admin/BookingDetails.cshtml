@@ -1,0 +1,232 @@
+@model SugboGo.Models.BookingAdminViewModel
+@{
+    Layout = "_AdminLayout";
+    string StatusClass(string status) => string.IsNullOrWhiteSpace(status) ? "status--pending" : $"status--{status.Trim().ToLowerInvariant().Replace(" ", "-")}";
+    var partners = ViewBag.Partners as List<SugboGo.Models.PartnerAdminViewModel> ?? new List<SugboGo.Models.PartnerAdminViewModel>();
+}
+
+<style>
+    .details-grid {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 32px;
+        margin-top: 32px;
+    }
+    .card {
+        background: white;
+        border: 1px solid var(--admin-border);
+        border-radius: 12px;
+        padding: 24px;
+        margin-bottom: 24px;
+    }
+    .card-title {
+        font-size: 1.1rem;
+        font-weight: 700;
+        margin-bottom: 20px;
+        border-bottom: 1px solid var(--admin-border);
+        padding-bottom: 12px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .info-row {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 12px;
+        font-size: 0.95rem;
+    }
+    .info-label {
+        color: var(--admin-text-muted);
+        font-weight: 500;
+    }
+    .info-value {
+        font-weight: 600;
+        text-align: right;
+    }
+    .status-badge {
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 700;
+        text-transform: uppercase;
+    }
+    .form-group {
+        margin-bottom: 16px;
+    }
+    .form-label {
+        display: block;
+        font-size: 0.8rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        color: var(--admin-text-muted);
+        margin-bottom: 8px;
+    }
+    .form-input {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid var(--admin-border);
+        border-radius: 6px;
+        font-family: inherit;
+    }
+    .btn-update {
+        background: var(--admin-accent);
+        color: white;
+        border: none;
+        padding: 12px;
+        border-radius: 6px;
+        font-weight: 600;
+        width: 100%;
+        cursor: pointer;
+        margin-top: 16px;
+    }
+    .itinerary-item {
+        padding: 12px;
+        border-left: 3px solid var(--admin-accent);
+        background: var(--admin-bg);
+        margin-bottom: 12px;
+        border-radius: 0 6px 6px 0;
+    }
+</style>
+
+<div style="display: flex; justify-content: space-between; align-items: center;">
+    <div>
+        <a asp-action="Bookings" style="color: var(--admin-text-muted); text-decoration: none; font-size: 0.9rem; font-weight: 600;">
+            <i class="bi bi-arrow-left"></i> Back to Ledger
+        </a>
+        <h1 style="margin: 8px 0 0 0; font-family: 'Cormorant Garamond', serif; font-size: 2.2rem; font-weight: 700;">
+            Booking #@Model.Id.Substring(0, 8).ToUpper()
+        </h1>
+    </div>
+    <div style="text-align: right;">
+        <span class="status-badge @StatusClass(Model.Status)" style="font-size: 1rem; padding: 8px 16px;">@Model.Status</span>
+        <p style="margin: 8px 0 0 0; font-size: 0.85rem; color: var(--admin-text-muted);">Created on @Model.CreatedAt.ToString("MMM dd, yyyy HH:mm")</p>
+    </div>
+</div>
+
+<div class="details-grid">
+    <div class="main-content">
+        <div class="card">
+            <div class="card-title">Traveler & Journey Details</div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 40px;">
+                <div>
+                    <div class="info-row">
+                        <span class="info-label">Traveler Name</span>
+                        <span class="info-value">@Model.UserName</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Contact Email</span>
+                        <span class="info-value">@Model.UserEmail</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Traveler Type</span>
+                        <span class="info-value">@Model.TravelerType (@Model.TravelerCount Pax)</span>
+                    </div>
+                </div>
+                <div>
+                    <div class="info-row">
+                        <span class="info-label">Destination</span>
+                        <span class="info-value">@Model.Destination</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Travel Date</span>
+                        <span class="info-value">@Model.Date</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Payment Method</span>
+                        <span class="info-value">@Model.PaymentMethod</span>
+                    </div>
+                </div>
+            </div>
+            
+            @if (!string.IsNullOrEmpty(Model.TravelerNotes))
+            {
+                <div style="margin-top: 24px; padding: 16px; background: #fff8e1; border-radius: 8px; border: 1px solid #ffe082;">
+                    <span class="form-label" style="color: #795548;">Traveler Special Requests:</span>
+                    <p style="margin: 0; font-style: italic;">"@Model.TravelerNotes"</p>
+                </div>
+            }
+        </div>
+
+        <div class="card">
+            <div class="card-title">Service Components</div>
+            <div class="itinerary-item">
+                <div style="font-weight: 700;">Transportation</div>
+                <div style="font-size: 0.9rem; color: var(--admin-text-muted);">@Model.SelectedTransport</div>
+            </div>
+            <div class="itinerary-item">
+                <div style="font-weight: 700;">Accommodation</div>
+                <div style="font-size: 0.9rem; color: var(--admin-text-muted);">@Model.SelectedAccommodation</div>
+            </div>
+            <div class="itinerary-item">
+                <div style="font-weight: 700;">Planned Activities</div>
+                <ul style="margin: 8px 0 0 0; padding-left: 20px; font-size: 0.9rem;">
+                    @foreach (var activity in Model.SelectedActivities)
+                    {
+                        <li>@activity</li>
+                    }
+                </ul>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">Financial Summary</div>
+            <div class="info-row" style="font-size: 1.2rem;">
+                <span class="info-label">Total Paid Amount</span>
+                <span class="info-value" style="color: var(--admin-accent);">PHP @Model.Amount.ToString("N2")</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Internal QR Tracking</span>
+                <span class="info-value" style="font-family: monospace; letter-spacing: 2px;">@Model.QrCode</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="sidebar">
+        <div class="card" style="border-color: var(--admin-accent); background: #f0f7f5;">
+            <div class="card-title" style="border-color: rgba(0,0,0,0.05);">Operations Management</div>
+            <form asp-action="UpdateBooking" asp-route-id="@Model.Id" method="post">
+                @Html.AntiForgeryToken()
+                
+                <div class="form-group">
+                    <label class="form-label">Workflow Status</label>
+                    <select name="status" class="form-input">
+                        <option value="Pending" selected="@(Model.Status == "Pending" ? "selected" : null)">Pending Verification</option>
+                        <option value="Paid" selected="@(Model.Status == "Paid" ? "selected" : null)">Payment Received</option>
+                        <option value="Confirmed" selected="@(Model.Status == "Confirmed" ? "selected" : null)">Confirmed & Finalized</option>
+                        <option value="In Progress" selected="@(Model.Status == "In Progress" ? "selected" : null)">Active Trip</option>
+                        <option value="Completed" selected="@(Model.Status == "Completed" ? "selected" : null)">Archived / Completed</option>
+                        <option value="Cancelled" selected="@(Model.Status == "Cancelled" ? "selected" : null)">Cancelled</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Assign Primary Partner</label>
+                    <select name="assignedPartnerId" class="form-input">
+                        <option value="">-- No Partner Assigned --</option>
+                        @foreach (var partner in partners)
+                        {
+                            <option value="@partner.Id" selected="@(Model.AssignedPartnerId == partner.Id ? "selected" : null)">@partner.Name (@partner.Type)</option>
+                        }
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Internal Admin Notes</label>
+                    <textarea name="adminNotes" class="form-input" rows="4" placeholder="Add private operational notes here...">@Model.AdminNotes</textarea>
+                </div>
+
+                <button type="submit" class="btn-update">Save Operations Update</button>
+            </form>
+        </div>
+
+        <div class="card">
+            <div class="card-title">Quick Actions</div>
+            <button class="btn-update" style="background: transparent; border: 1px solid var(--admin-border); color: var(--admin-text-main); margin-top: 0;">
+                <i class="bi bi-printer"></i> Print Booking Voucher
+            </button>
+            <button class="btn-update" style="background: transparent; border: 1px solid var(--admin-border); color: var(--admin-text-main); margin-top: 12px;">
+                <i class="bi bi-envelope"></i> Email Itinerary to Traveler
+            </button>
+        </div>
+    </div>
+</div>

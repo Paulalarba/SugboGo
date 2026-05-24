@@ -1,0 +1,54 @@
+@model SugboGo.Models.PartnerDashboardViewModel
+@{
+    Layout = "_PartnerLayout";
+    string StatusClass(string status) => string.IsNullOrWhiteSpace(status) ? "status--pending" : $"status--{status.Trim().ToLowerInvariant().Replace(" ", "-")}";
+}
+
+<div style="margin-bottom: 32px;">
+    <h1 style="margin: 0; font-family: 'Cormorant Garamond', serif; font-size: 2.2rem; font-weight: 700;">Assignments Ledger</h1>
+    <p style="margin: 4px 0 0 0; color: var(--admin-text-muted);">Historical and upcoming itineraries assigned to your team.</p>
+</div>
+
+<section class="admin-section">
+    <div class="section-header">
+        <h2 style="margin: 0; font-size: 1.1rem; font-weight: 600;">Full Booking History</h2>
+    </div>
+    <table class="admin-table">
+        <thead>
+            <tr>
+                <th>Traveler</th>
+                <th>Destination</th>
+                <th>Travel Date</th>
+                <th>Amount</th>
+                <th>Status</th>
+                <th style="text-align: right;">Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (!Model.ActiveTrips.Any() && !Model.UpcomingBookings.Any() && !Model.CompletedTrips.Any())
+            {
+                <tr>
+                    <td colspan="6" style="text-align: center; padding: 40px; color: var(--admin-text-muted);">
+                        No assignments found in your history.
+                    </td>
+                </tr>
+            }
+            else
+            {
+                @foreach (var booking in Model.ActiveTrips.Concat(Model.UpcomingBookings).Concat(Model.CompletedTrips))
+                {
+                    <tr>
+                        <td style="font-weight: 600;">@booking.UserName</td>
+                        <td>@booking.Destination</td>
+                        <td style="color: var(--admin-text-muted);">@booking.Date</td>
+                        <td style="font-weight: 600;">₱@booking.Amount.ToString("N0")</td>
+                        <td><span class="status-pill @StatusClass(booking.Status)">@booking.Status</span></td>
+                        <td style="text-align: right;">
+                            <a asp-action="BookingDetails" asp-route-id="@booking.Id" style="color: var(--admin-accent); text-decoration: none; font-weight: 600; font-size: 0.85rem;">View Details ➔</a>
+                        </td>
+                    </tr>
+                }
+            }
+        </tbody>
+    </table>
+</section>
