@@ -102,9 +102,6 @@
             {
                 @foreach (var gem in Model.Gems)
                 {
-                    // Fallback simulated ID calculation using hash metrics for stable local interface testing
-                    int simulatedId = Math.Abs(gem.Name.GetHashCode() % 100000);
-                    
                     <tr>
                         <td style="font-weight: 600;">@gem.Name</td>
                         <td>
@@ -119,9 +116,9 @@
                         <td style="color: var(--admin-text-muted);">@gem.QualityCheckDate</td>
                         <td>
                             <div class="table-actions">
-                                <a asp-controller="Admin" asp-action="EditGem" asp-route-id="@simulatedId" class="lnk-edit">Edit</a>
+                                <a asp-controller="Admin" asp-action="EditGem" asp-route-id="@gem.Id" class="lnk-edit">Edit</a>
                                 
-                                <form asp-controller="Admin" asp-action="DeleteGem" asp-route-id="@simulatedId" method="post" style="margin: 0; display: inline;" onsubmit="return confirm('Are you sure you want to permanently delete this destination entry from SugboGo catalog?');">
+                                <form asp-controller="Admin" asp-action="DeleteGem" asp-route-id="@gem.Id" method="post" style="margin: 0; display: inline;" onsubmit="return confirm('Are you sure you want to permanently delete this destination entry from SugboGo catalog?');">
                                     @Html.AntiForgeryToken()
                                     <button type="submit" class="btn-delete-inline">Delete</button>
                                 </form>

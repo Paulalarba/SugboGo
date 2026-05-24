@@ -50,6 +50,7 @@ public sealed class AdminOperationsService : IAdminOperationsService
             Flashpackers = BuildFlashpackers(users, preferences, posts),
             Gems = gems.Select(gem => new GemAdminViewModel
             {
+                Id = gem.Id,
                 Name = gem.Name,
                 Category = gem.Category,
                 FlashpackerScore = gem.FlashpackerScore,
@@ -70,6 +71,8 @@ public sealed class AdminOperationsService : IAdminOperationsService
             }).ToList(),
             Partners = partners.Select(partner => new PartnerAdminViewModel
             {
+                Id = partner.Id,
+                UserId = partner.UserId,
                 Name = partner.Name,
                 Type = partner.Type,
                 Contact = partner.Contact,
@@ -81,13 +84,176 @@ public sealed class AdminOperationsService : IAdminOperationsService
             {
                 Id = b.Id,
                 UserName = users.FirstOrDefault(u => u.Id == b.UserId)?.FullName ?? "Unknown User",
+                UserEmail = users.FirstOrDefault(u => u.Id == b.UserId)?.Email ?? "N/A",
                 Destination = b.DestinationName,
                 Date = b.TravelDate.ToString("MMM d, yyyy"),
                 Status = b.Status,
-                Amount = b.TotalPrice
+                Amount = b.TotalPrice,
+                TravelerType = b.TravelerType,
+                TravelerCount = b.TravelerCount,
+                PaymentMethod = b.PaymentMethod ?? "Pending",
+                AssignedPartnerId = b.AssignedPartnerId ?? string.Empty,
+                AssignedPartnerName = partners.FirstOrDefault(p => p.Id == b.AssignedPartnerId)?.Name ?? "Unassigned"
             }).ToList(),
             CollaborationQueue = BuildCollaborationQueue()
         };
+    }
+
+    public async Task<GemAdminViewModel?> GetGemByIdAsync(string id, CancellationToken cancellationToken = default)
+    {
+        var gem = await _adminDataStore.GetGemByIdAsync(id, cancellationToken);
+        if (gem == null) return null;
+
+        return new GemAdminViewModel
+        {
+            Id = gem.Id,
+            Name = gem.Name,
+            Category = gem.Category,
+            FlashpackerScore = gem.FlashpackerScore,
+            QualityCheckDate = gem.QualityCheckDate,
+            ContactPerson = gem.ContactPerson,
+            Latitude = gem.Latitude,
+            Longitude = gem.Longitude,
+            Status = gem.Status,
+            MapX = gem.MapX,
+            MapY = gem.MapY
+        };
+    }
+
+    public async Task AddGemAsync(GemAdminViewModel model, CancellationToken cancellationToken = default)
+    {
+        var gem = new AdminGem
+        {
+            Name = model.Name,
+            Category = model.Category,
+            FlashpackerScore = model.FlashpackerScore,
+            ContactPerson = model.ContactPerson,
+            Latitude = model.Latitude,
+            Longitude = model.Longitude,
+            Status = model.Status,
+            MapX = model.MapX,
+            MapY = model.MapY,
+            QualityCheckDate = DateTime.UtcNow.ToString("MMM d, yyyy")
+        };
+
+        await _adminDataStore.AddGemAsync(gem, cancellationToken);
+    }
+
+    public async Task UpdateGemAsync(string id, GemAdminViewModel model, CancellationToken cancellationToken = default)
+    {
+        var gem = new AdminGem
+        {
+            Name = model.Name,
+            Category = model.Category,
+            FlashpackerScore = model.FlashpackerScore,
+            ContactPerson = model.ContactPerson,
+            Latitude = model.Latitude,
+            Longitude = model.Longitude,
+            Status = model.Status,
+            MapX = model.MapX,
+            MapY = model.MapY
+        };
+
+        await _adminDataStore.UpdateGemAsync(id, gem, cancellationToken);
+    }
+
+    public async Task DeleteGemAsync(string id, CancellationToken cancellationToken = default)
+    {
+        await _adminDataStore.DeleteGemAsync(id, cancellationToken);
+    }
+
+    public async Task<BookingAdminViewModel?> GetBookingByIdAsync(string id, CancellationToken cancellationToken = default)
+    {
+        var booking = await _dbContext.Bookings.FirstOrDefaultAsync(b => b.Id == id, cancellationToken);
+        if (booking == null) return null;
+
+        var user = await _dbContext.Users.FirstOrDefaultAsync(u => u.Id == booking.UserId, cancellationToken);
+        var partners = await _adminDataStore.GetPartnersAsync(cancellationToken);
+
+        return new BookingAdminViewModel
+        {
+            Id = booking.Id,
+            UserName = user?.FullName ?? "Unknown User",
+            UserEmail = user?.Email ?? "N/A",
+            Destination = booking.DestinationName,
+            Date = booking.TravelDate.ToString("MMM d, yyyy"),
+            Status = booking.Status,
+            Amount = booking.TotalPrice,
+            TravelerType = booking.TravelerType,
+            TravelerCount = booking.TravelerCount,
+            TravelerNotes = booking.TravelerNotes ?? string.Empty,
+            AdminNotes = booking.AdminNotes ?? string.Empty,
+            PaymentMethod = booking.PaymentMethod ?? "Pending",
+            AssignedPartnerId = booking.AssignedPartnerId ?? string.Empty,
+            AssignedPartnerName = partners.FirstOrDefault(p => p.Id == booking.AssignedPartnerId)?.Name ?? "Unassigned",
+            QrCode = booking.QrCode,
+            CreatedAt = booking.CreatedAt.DateTime
+        };
+    }
+
+    public async Task UpdateBookingAsync(string id, string status, string? assignedPartnerId, string? adminNotes, CancellationToken cancellationToken = default)
+    {
+        var booking = await _dbContext.Bookings.FirstOrDefaultAsync(b => b.Id == id, cancellationToken);
+        if (booking == null) return;
+
+        booking.Status = status;
+        booking.AssignedPartnerId = assignedPartnerId;
+        booking.AdminNotes = adminNotes;
+
+        await _dbContext.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task AddPartnerAsync(PartnerAdminViewModel model, CancellationToken cancellationToken = default)
+    {
+        var partner = new AdminPartner
+        {
+            Name = model.Name,
+            Type = model.Type,
+            Contact = model.Contact,
+            Commission = model.Commission,
+            LastAudit = DateTime.UtcNow.ToString("MMM d, yyyy"),
+            Status = model.Status
+        };
+
+        await _adminDataStore.AddPartnerAsync(partner, cancellationToken);
+    }
+
+    public async Task<PartnerAdminViewModel?> GetPartnerByIdAsync(string id, CancellationToken cancellationToken = default)
+    {
+        var partner = await _adminDataStore.GetPartnerByIdAsync(id, cancellationToken);
+        if (partner == null) return null;
+
+        return new PartnerAdminViewModel
+        {
+            Id = partner.Id,
+            UserId = partner.UserId,
+            Name = partner.Name,
+            Type = partner.Type,
+            Contact = partner.Contact,
+            Commission = partner.Commission,
+            LastAudit = partner.LastAudit,
+            Status = partner.Status
+        };
+    }
+
+    public async Task UpdatePartnerAsync(string id, PartnerAdminViewModel model, CancellationToken cancellationToken = default)
+    {
+        var partner = new AdminPartner
+        {
+            Name = model.Name,
+            UserId = model.UserId,
+            Type = model.Type,
+            Contact = model.Contact,
+            Commission = model.Commission,
+            Status = model.Status
+        };
+
+        await _adminDataStore.UpdatePartnerAsync(id, partner, cancellationToken);
+    }
+
+    public async Task DeletePartnerAsync(string id, CancellationToken cancellationToken = default)
+    {
+        await _adminDataStore.DeletePartnerAsync(id, cancellationToken);
     }
 
     private static List<AdminKpiViewModel> BuildKpis(
@@ -223,7 +389,7 @@ public sealed class AdminOperationsService : IAdminOperationsService
                 "pending" => columns[0],
                 "curating" => columns[1],
                 "awaiting approval" => columns[2],
-                "confirmed" or "paid" => columns[3],
+                "paid" or "confirmed" => columns[3],
                 "in progress" => columns[4],
                 "completed" => columns[5],
                 _ => columns[0]

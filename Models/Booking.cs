@@ -64,5 +64,9 @@ public sealed class Booking
 
     public string QrCode { get; set; } = Guid.NewGuid().ToString("N").ToUpper()[..8];
 
+    public string? AssignedPartnerId { get; set; }
+    
+    public string? AdminNotes { get; set; }
+
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
 }

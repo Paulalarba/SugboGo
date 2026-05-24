@@ -55,6 +55,7 @@ builder.Services.AddHttpClient<SupabaseAdminDataStore>();
 builder.Services.AddScoped<AdminDataStoreFactory>();
 builder.Services.AddScoped<IAdminDataStore>(provider => provider.GetRequiredService<AdminDataStoreFactory>().Create());
 builder.Services.AddScoped<IAdminOperationsService, AdminOperationsService>();
+builder.Services.AddScoped<IPartnerOperationsService, PartnerOperationsService>();
 builder.Services.AddScoped<IBookingOptionsService, BookingOptionsService>();
 
 builder.Services.AddScoped<LocalJsonDestinationPostStore>();
@@ -94,6 +95,9 @@ if (!string.IsNullOrWhiteSpace(builder.Configuration.GetConnectionString("Defaul
         var dbContext = scope.ServiceProvider.GetRequiredService<SugboGoDbContext>();
         await dbContext.Database.MigrateAsync();
         await TravelSpotSeeder.SeedAsync(dbContext);
+
+        var adminDataStore = scope.ServiceProvider.GetRequiredService<IAdminDataStore>();
+        await adminDataStore.SeedAsync();
     }
     catch (Exception exception)
     {

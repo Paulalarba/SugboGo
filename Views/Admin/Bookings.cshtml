@@ -19,6 +19,7 @@
                 <th>Traveler</th>
                 <th>Destination</th>
                 <th>Date</th>
+                <th>Assigned Partner</th>
                 <th>Amount</th>
                 <th>Status</th>
                 <th style="text-align: right;">Action</th>
@@ -31,9 +32,19 @@
                     <td style="font-weight: 600;">@booking.UserName</td>
                     <td>@booking.Destination</td>
                     <td style="color: var(--admin-text-muted);">@booking.Date</td>
+                    <td>
+                        @if (string.IsNullOrEmpty(booking.AssignedPartnerId))
+                        {
+                            <span style="color: var(--admin-danger); font-size: 0.8rem; font-weight: 600;">⚠️ Unassigned</span>
+                        }
+                        else
+                        {
+                            <span style="font-size: 0.85rem; font-weight: 600;">@booking.AssignedPartnerName</span>
+                        }
+                    </td>
                     <td style="font-weight: 600;">PHP @booking.Amount.ToString("N0")</td>
                     <td><span class="status-pill @StatusClass(booking.Status)">@booking.Status</span></td>
-                    <td style="text-align: right;"><a href="#" style="color: var(--admin-accent); text-decoration: none; font-weight: 600; font-size: 0.85rem;">Manage Itinerary ➔</a></td>
+                    <td style="text-align: right;"><a asp-action="BookingDetails" asp-route-id="@booking.Id" style="color: var(--admin-accent); text-decoration: none; font-weight: 600; font-size: 0.85rem;">Manage Itinerary ➔</a></td>
                 </tr>
             }
         </tbody>
