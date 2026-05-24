@@ -1,74 +1,114 @@
-# SugboGo
+# 📍 SugboGo: The Ultimate Cebu Experience Platform
 
-SugboGo is a comprehensive ASP.NET Core MVC travel platform designed to help users discover and experience Cebu like a local. Beyond a simple landing page, SugboGo offers personalized travel recommendations, booking management, and a dedicated administrator portal.
+[![Framework](https://img.shields.io/badge/Framework-ASP.NET%20Core%20MVC%2010.0-512bd4?style=flat-square&logo=dotnet)](https://dotnet.microsoft.com/en-us/apps/aspnet)
+[![Database](https://img.shields.io/badge/Database-PostgreSQL-336791?style=flat-square&logo=postgresql)](https://www.postgresql.org/)
+[![License](https://img.shields.io/badge/License-MIT-green.svg?style=flat-square)](LICENSE)
 
-## Key Features
+SugboGo is a high-performance travel ecosystem built to transform how travelers discover, plan, and experience the island of Cebu. It serves as a bridge between **Explorers** looking for authentic local gems, **B2B Partners** providing elite logistics/services, and **Administrators** orchestrating the entire island's operations.
 
-- **Personalized Exploration:** Discover tours, hiking trails, gastronomy experiences, and trending spots tailored to your preferences.
-- **Travel Preferences Survey:** A dynamic survey that captures your travel style to provide curated recommendations.
-- **Booking System:** Seamlessly plan and manage your adventures across Cebu.
-- **User Dashboard:** A personalized hub to view saved gems, upcoming bookings, and travel history.
-- **Admin Portal:** Comprehensive management interface for administrators to monitor platform activity and manage travel data.
-- **Flexible Data Architecture:** Supports multiple backends (Local JSON, PostgreSQL, and Supabase) through a factory-based service pattern.
-- **Secure Authentication:** Robust cookie-based authentication with role-based access control (Admin/User).
+---
 
-## Tech Stack
+## 🌟 Core Ecosystem
 
-- **Framework:** ASP.NET Core MVC 10.0
-- **Database:** PostgreSQL via Npgsql & Entity Framework Core
-- **Cloud Integration:** Optional Supabase backend support
-- **Authentication:** Custom Cookie-based Auth with PBKDF2 password hashing
-- **Frontend:** Razor Views, Vanilla CSS, and JavaScript
-- **Configuration:** `dotenv.net` for environment variable management
+### 🧭 For Travelers (Explorers)
+- **Vibe-Based Curation:** Beyond simple lists—discover spots based on your "Travel Vibe" (Solo, Family, Adventure).
+- **Checkout 2.0:** A personalized booking flow that captures preferences, activities, and special requests.
+- **Personal Dashboard:** Manage upcoming itineraries, saved "hidden gems," and travel history in one hub.
 
-## Prerequisites
+### 🤝 For B2B Partners (Vendors)
+- **Operations Command Center:** A dedicated portal for transport providers, guides, and hotels.
+- **Assignment Ledger:** Real-time visibility into assigned bookings and traveler specifics.
+- **Trip Lifecycle Management:** Update trip statuses (Active, Completed) to keep the network synchronized.
+- **Verification Engine:** QR-code based traveler verification for on-site operations.
 
+### 🏛️ For Administrators (Command Center)
+- **Master Booking Ledger:** End-to-end visibility of all financial and operational data.
+- **Partner Network Management:** Register, audit, and link user accounts to B2B vendor entities.
+- **Inventory Curation:** Add and verify "Hidden Gems" across all 50+ regions of Cebu.
+- **KPI Analytics:** Real-time metrics on user growth, revenue pipeline, and trending travel vibes.
+
+---
+
+## 🚀 Tech Stack & Architecture
+
+- **Backend:** C# 13, ASP.NET Core 10.0 MVC
+- **Data Layer:** Entity Framework Core with a **Hybrid Factory Strategy** (PostgreSQL, Supabase, or Local JSON).
+- **Security:** PBKDF2 Password Hashing, Role-Based Access Control (RBAC), and Anti-Forgery Protection.
+- **Frontend:** Razor Pages with specialized "Command Center" CSS architectures for high-density data.
+- **Documentation:** Modern Markdown with region-specific "Cebu Intelligence" datasets.
+
+---
+
+## 🛠️ Developer Setup Guide
+
+### 1. Prerequisites
 - [.NET 10 SDK](https://dotnet.microsoft.com/download)
-- [PostgreSQL](https://www.postgresql.org/) (Optional, but recommended for full features)
+- [PostgreSQL](https://www.postgresql.org/) (Recommended for full operational features)
+- [VS Code](https://code.visualstudio.com/) or [Visual Studio 2022+](https://visualstudio.microsoft.com/)
 
-## Getting Started
+### 2. Installation & Setup
+```bash
+# Clone the repository
+git clone https://github.com/yourusername/SugboGo.git
+cd SugboGo
 
-### 1. Configuration
-
-The application uses `appsettings.json` and a `.env` file for configuration.
-
-- Create a `.env` file in the root directory (refer to `.env.example` if available, or add your `DefaultConnection`).
-- Configure your PostgreSQL connection string in `appsettings.json` or `.env`:
-  ```json
-  "ConnectionStrings": {
-    "DefaultConnection": "Host=localhost;Database=SugboGo;Username=postgres;Password=yourpassword"
-  }
-  ```
-
-### 2. Database Setup
-
-Migrations are automatically applied on startup if a valid connection string is provided. The system also seeds initial travel spot data automatically.
-
-### 3. Running the App
-
-From the project root:
-
-```powershell
+# Restore dependencies
 dotnet restore
-dotnet run
+
+# Configure Environment
+cp .env.example .env
 ```
 
-Access the application at:
-- `http://localhost:5115`
-- `https://localhost:7225`
+### 3. Database Initialization
+SugboGo features **Auto-Sync Migration**. On the first run, the system will:
+1. Detect your PostgreSQL instance.
+2. Apply all schema migrations.
+3. **Seed Data:** Inject 19+ B2B Partners and curated Cebu Hidden Gems automatically.
 
-## Project Structure
+### 4. Launching the App
+```bash
+dotnet run
+```
+Access the portals at:
+- **Client App:** `http://localhost:5115`
+- **Admin Portal:** `http://localhost:5115/Admin`
+- **Partner Portal:** `http://localhost:5115/Partner`
 
-- `Controllers/`: Application logic for Explore, Booking, Admin, and Account management.
-- `Models/`: Data structures and ViewModels.
-- `Services/`: Business logic layer, including Auth, Travel, Booking, and Admin services.
-- `Data/`: EF Core DbContext, Migrations, and Seeding logic.
-- `Views/`: UI templates using Razor syntax.
-- `App_Data/`: Local storage for JSON data files and Data Protection keys.
-- `wwwroot/`: Static assets (CSS, Images, JS, Libs).
+---
 
-## Notes
+## 📊 Project Statistics (Live Metrics)
 
-- **Default Route:** The app launches to the `Home/Index` landing page.
-- **Storage Strategy:** The application defaults to a specific storage backend (JSON or Postgres) based on configuration. This is managed by service factories in `Program.cs`.
-- **Admin Access:** Administrator roles are determined by email addresses configured in `appsettings.json` under `Authentication:AdminEmails`.
+| Metric | Count | Context |
+| :--- | :--- | :--- |
+| **B2B Partners** | 19+ | Verified Transport, Lodging, and Guides |
+| **Curated Gems** | 7+ | Off-the-beaten-path destinations |
+| **Active Regions** | 12+ | Cebu City, Mactan, Oslob, Bantayan, etc. |
+| **Core Contributors** | 1 | Senior Software Engineer |
+| **Architecture** | Hybrid | Local-first with Cloud Scalability |
+
+---
+
+## 🤝 Contribution Guidelines
+
+We welcome contributions that help make Cebu the premier travel destination in Asia!
+
+1. **Fork** the repository.
+2. **Create a Feature Branch** (`git checkout -b feature/AmazingFeature`).
+3. **Commit your changes** (`git commit -m 'Add some AmazingFeature'`).
+4. **Push to the Branch** (`git push origin feature/AmazingFeature`).
+5. **Open a Pull Request**.
+
+*Note: Ensure your code adheres to the project's C# Clean Coding standards and includes necessary migrations for model changes.*
+
+---
+
+## 📄 License
+Distributed under the MIT License. See `LICENSE` for more information.
+
+## 📞 Support & Contact
+- **Project Lead:** [Your Name/Handle]
+- **Region:** Cebu, Philippines
+- **Issue Tracker:** [GitHub Issues](https://github.com/yourusername/SugboGo/issues)
+
+---
+*Created with ❤️ in Cebu for the World.*
