@@ -39,6 +39,34 @@ SugboGo is a high-performance travel ecosystem built to transform how travelers 
 
 ---
 
+## 🔑 Portal Access & User Registration
+
+SugboGo uses a Role-Based Access Control (RBAC) system. Here is how to set up specialized accounts:
+
+### 🏛️ How to Register as an Administrator
+Administrators are designated via high-level security configuration.
+1.  **Configure Admin Email:** Open `appsettings.json` and add your email to the `Authentication:AdminEmails` list:
+    ```json
+    "Authentication": {
+      "AdminEmails": ["yourname@sugbogo.ph"]
+    }
+    ```
+2.  **Register:** Go to the application and register a new account using that exact email address.
+3.  **Automatic Escalation:** The system will automatically detect the email and assign the `Admin` role upon registration.
+4.  **Access:** You can now access `http://localhost:5115/Admin` to manage the platform.
+
+### 🤝 How to Register as a B2B Partner
+B2B Partners require a two-step "Verified Link" process to ensure network integrity.
+1.  **Traveler Registration:** The partner representative must first register a standard traveler account at `http://localhost:5115/Account`.
+2.  **Admin Authorization:** An existing Administrator must log in and navigate to the **[Vendor Partners](http://localhost:5115/Admin/Partners)** ledger.
+3.  **Entity Linking:**
+    *   Find the B2B Partner entity (e.g., "Mactan Island Boat Charters").
+    *   Click **Edit**.
+    *   Paste the representative's **User ID** (found in the Admin's "Traveler Profiles" section) into the **"Linked Account User ID"** field.
+4.  **Access:** Once linked, the representative will lose standard traveler access and be redirected to their private **Partner Command Center** at `http://localhost:5115/Partner` upon login.
+
+---
+
 ## 🛠️ Developer Setup Guide
 
 ### 1. Prerequisites
